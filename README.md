@@ -9,6 +9,8 @@ Epasto, Lattanzi, Mirrokni, Sebe, Taei, and Verma, "Ego-net Community Mining App
 ## What Is Implemented
 
 - Ego-net construction without ego node `Z_u`.
+- Triangle-enumeration ego-net construction inspired by the paper's fast
+  ego-network construction algorithm.
 - Absolute-Potts-style label propagation used inside each ego-net.
 - Ego-network friendship score `W(v,w)`, counting how many ego-net communities contain both nodes.
 - Aggregated EgoNet-APM communities from the score graph.
@@ -44,7 +46,7 @@ The optional dynamic-graph results are saved to `results/dynamic_experiment_resu
 
 ## Reproduction Notes
 
-The original paper focuses on large-scale MapReduce construction of all ego-nets. This implementation keeps the same local computation and scoring idea but runs it in memory on the smaller public datasets from the paper.
+The original paper focuses on large-scale MapReduce construction of all ego-nets. This implementation now uses a single-machine triangle-enumeration constructor for all `Z_u` edge sets, but it still does not implement the paper's distributed MapReduce execution. For debugging, `run_experiments.py --construction neighbor` switches to per-node neighborhood intersection construction.
 
 The APM label-propagation update follows the paper appendix:
 

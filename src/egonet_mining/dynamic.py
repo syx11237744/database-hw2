@@ -7,7 +7,12 @@ from collections.abc import Iterable
 
 import networkx as nx
 
-from .algorithms import apm_label_propagation, ego_score_partition
+from .algorithms import (
+    apm_label_propagation,
+    ego_graph_from_edges,
+    ego_net_edges_for_node,
+    ego_score_partition,
+)
 
 EdgeEvent = tuple[str, str, str]
 
@@ -105,13 +110,10 @@ class DynamicEgoNetMiner:
         if ego not in self.graph:
             return contribution, []
 
-        neighbors = sorted(self.graph.neighbors(ego))
-        if len(neighbors) < self.min_cluster_size:
+        ego_edges = ego_net_edges_for_node(self.graph, ego)
+        if not ego_edges:
             return contribution, []
-
-        ego_graph = self.graph.subgraph(neighbors).copy()
-        if ego_graph.number_of_edges() == 0:
-            return contribution, []
+        ego_graph = ego_graph_from_edges(ego_edges)
 
         clusters = apm_label_propagation(
             ego_graph,

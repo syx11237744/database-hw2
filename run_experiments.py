@@ -52,6 +52,7 @@ def run_dataset(name: str, args: argparse.Namespace) -> list[dict[str, float | s
         beta=args.beta,
         max_iter=args.max_iter,
         seed=args.seed,
+        construction=args.construction,
     )
     ego_partition = ego_score_partition(train, ego_scores, min_score=args.min_score)
     ego_quality = evaluate_partition(train, ego_partition)
@@ -155,6 +156,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--beta", type=float, default=0.01)
     parser.add_argument("--max-iter", type=int, default=20)
     parser.add_argument("--min-score", type=float, default=1.0)
+    parser.add_argument("--construction", choices=["triangle", "neighbor"], default="triangle")
     return parser.parse_args()
 
 

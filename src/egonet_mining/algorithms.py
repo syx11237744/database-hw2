@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import heapq
 import math
 import random
 from collections import Counter, defaultdict
@@ -9,6 +10,13 @@ from collections.abc import Mapping
 import networkx as nx
 
 from .metrics import mean_density
+
+
+EgoEdges = dict[str, set[tuple[str, str]]]
+
+
+def _sorted_pair(source: str, target: str) -> tuple[str, str]:
+    return (source, target) if source <= target else (target, source)
 
 
 def apm_label_propagation(
@@ -27,7 +35,7 @@ def apm_label_propagation(
     if graph.number_of_nodes() == 0:
         return []
     rng = random.Random(seed)
-    nodes = list(graph.nodes())
+    nodes = sorted(graph.nodes())
     labels = {node: node for node in nodes}
     label_sizes = Counter(labels.values())
 
@@ -64,6 +72,74 @@ def apm_label_propagation(
     return list(communities.values())
 
 
+def triangle_ego_net_edges(graph: nx.Graph) -> EgoEdges:
+    """Construct all ego-net-without-ego edge sets by Schank-style triangles.
+
+    Every edge in Z_u corresponds to a triangle (u, v, w) in the original
+    graph. The implementation follows the paper's Algorithm 2 idea: repeatedly
+    process a current minimum-degree node in the residual graph, enumerate the
+    triangles incident to it, and add each triangle edge to the three ego-nets.
+    """
+    residual_adj: dict[str, set[str]] = {
+        node: set(graph.neighbors(node))
+        for node in graph.nodes()
+    }
+    node_order = {node: idx for idx, node in enumerate(sorted(residual_adj))}
+    heap = [
+        (len(neighbors), node_order[node], node)
+        for node, neighbors in residual_adj.items()
+    ]
+    heapq.heapify(heap)
+
+    ego_edges: defaultdict[str, set[tuple[str, str]]] = defaultdict(set)
+    while heap:
+        degree, _, ego = heapq.heappop(heap)
+        neighbors = residual_adj.get(ego)
+        if neighbors is None or degree != len(neighbors):
+            continue
+
+        ordered_neighbors = sorted(neighbors)
+        for left_idx, source in enumerate(ordered_neighbors):
+            source_adj = residual_adj.get(source)
+            if source_adj is None:
+                continue
+            for target in ordered_neighbors[left_idx + 1 :]:
+                if target not in source_adj:
+                    continue
+                ego_edges[ego].add(_sorted_pair(source, target))
+                ego_edges[source].add(_sorted_pair(ego, target))
+                ego_edges[target].add(_sorted_pair(ego, source))
+
+        del residual_adj[ego]
+        for neighbor in ordered_neighbors:
+            neighbor_adj = residual_adj.get(neighbor)
+            if neighbor_adj is None:
+                continue
+            neighbor_adj.discard(ego)
+            heapq.heappush(heap, (len(neighbor_adj), node_order[neighbor], neighbor))
+
+    return dict(ego_edges)
+
+
+def ego_net_edges_for_node(graph: nx.Graph, ego: str) -> set[tuple[str, str]]:
+    """Build one Z_ego edge set by intersecting the ego's neighborhood."""
+    if ego not in graph:
+        return set()
+    neighbors = set(graph.neighbors(ego))
+    edges: set[tuple[str, str]] = set()
+    for source in sorted(neighbors):
+        for target in graph.neighbors(source):
+            if target in neighbors and source < target:
+                edges.add((source, target))
+    return edges
+
+
+def ego_graph_from_edges(edges: set[tuple[str, str]]) -> nx.Graph:
+    ego_graph = nx.Graph()
+    ego_graph.add_edges_from(sorted(edges))
+    return ego_graph
+
+
 def ego_friendship_scores(
     graph: nx.Graph,
     *,
@@ -72,24 +148,35 @@ def ego_friendship_scores(
     max_iter: int = 20,
     min_cluster_size: int = 2,
     seed: int = 42,
+    construction: str = "triangle",
 ) -> tuple[dict[tuple[str, str], float], list[set[str]]]:
     """Compute W(v,w): number of ego-net communities containing v and w."""
     scores: dict[tuple[str, str], float] = defaultdict(float)
     all_ego_clusters: list[set[str]] = []
+    sorted_nodes = sorted(graph.nodes())
+    node_offsets = {node: offset for offset, node in enumerate(sorted_nodes)}
 
-    for offset, ego in enumerate(sorted(graph.nodes())):
-        neighbors = sorted(graph.neighbors(ego))
-        if len(neighbors) < min_cluster_size:
+    if construction == "triangle":
+        ego_edges_by_node = triangle_ego_net_edges(graph)
+    elif construction == "neighbor":
+        ego_edges_by_node = {
+            ego: ego_net_edges_for_node(graph, ego)
+            for ego in sorted_nodes
+        }
+    else:
+        raise ValueError(f"Unsupported ego-net construction mode: {construction}")
+
+    for ego in sorted_nodes:
+        ego_edges = ego_edges_by_node.get(ego, set())
+        if not ego_edges:
             continue
-        ego_graph = graph.subgraph(neighbors).copy()
-        if ego_graph.number_of_edges() == 0:
-            continue
+        ego_graph = ego_graph_from_edges(ego_edges)
         clusters = apm_label_propagation(
             ego_graph,
             alpha=alpha,
             beta=beta,
             max_iter=max_iter,
-            seed=seed + offset,
+            seed=seed + node_offsets[ego],
         )
         for cluster in clusters:
             if len(cluster) < min_cluster_size:

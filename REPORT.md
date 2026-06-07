@@ -60,12 +60,12 @@ The results are:
 
 | Dataset | Algorithm | Runtime (s) | Modularity | Coverage | Mean Density | Mean Conductance | AUC | AP |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Facebook | EgoNet-APM | 19.1683 | 0.0009 | 0.9970 | 0.1130 | 0.7682 | 0.9818 | 0.9809 |
-| Facebook | Louvain | 0.5127 | 0.8346 | 0.9611 | 0.2574 | 0.0545 | 0.9938 | 0.9925 |
-| Enron | EgoNet-APM | 25.3878 | 0.0569 | 0.8202 | 0.1764 | 0.8460 | 0.9397 | 0.9396 |
-| Enron | Louvain | 2.6928 | 0.6104 | 0.7407 | 0.8817 | 0.0189 | 0.9693 | 0.9596 |
-| AstroPh | EgoNet-APM | 22.0313 | 0.0396 | 0.8859 | 0.1498 | 0.8958 | 0.9715 | 0.9715 |
-| AstroPh | Louvain | 2.5006 | 0.6267 | 0.6979 | 0.8603 | 0.0244 | 0.9828 | 0.9803 |
+| Facebook | EgoNet-APM | 6.7847 | 0.0009 | 0.9970 | 0.1130 | 0.7682 | 0.9807 | 0.9799 |
+| Facebook | Louvain | 0.3337 | 0.8346 | 0.9611 | 0.2574 | 0.0545 | 0.9938 | 0.9925 |
+| Enron | EgoNet-APM | 8.8199 | 0.0556 | 0.8204 | 0.1688 | 0.8571 | 0.9387 | 0.9386 |
+| Enron | Louvain | 1.7220 | 0.6104 | 0.7407 | 0.8817 | 0.0189 | 0.9693 | 0.9596 |
+| AstroPh | EgoNet-APM | 7.6114 | 0.0390 | 0.8892 | 0.1529 | 0.8938 | 0.9725 | 0.9725 |
+| AstroPh | Louvain | 1.5783 | 0.6267 | 0.6979 | 0.8603 | 0.0244 | 0.9828 | 0.9803 |
 
 ## Comparison With The Paper
 
@@ -76,17 +76,17 @@ The following table compares the paper's reported numbers with our reproduced re
 | Aspect | Paper result | Our result | Interpretation |
 |---|---:|---:|---|
 | Dataset scale | Facebook: 4,039 nodes / 88,234 edges; Twitter: 81,306 / 1,768,149; LiveJournal: 4,847,571 / 68,993,773; Patents: 3,774,768 / 16,518,948 | Facebook: 4,039 / 88,234; Enron: 36,692 / 183,831; AstroPh: 18,771 / 198,050 | Facebook exactly matches the paper's reported Facebook scale. Enron and AstroPh are also paper-listed datasets, selected to keep experiments feasible. |
-| Ego-net cluster density | Most retrieved ego-net clusters have density larger than 0.2; Google+ circles average density is 0.352 | EgoNet-APM mean density is 0.1464; ego-cluster mean densities are 0.7262, 0.8312, and 0.8985 for Facebook, Enron, and AstroPh | Our final aggregated communities are less dense, but the local ego-net clusters themselves are very dense, consistent with the paper's microscopic-community claim. |
-| Ego-net conductance | Paper observes typically low conductance in retrieved ego-net clusters; Google+ circles average conductance is 0.1438 | Aggregated EgoNet-APM mean conductance is 0.8367 | This is the main numerical mismatch. Our conductance is measured after aggregating pair-score components into global communities, while the paper primarily analyzes local ego-net clusters and Google+ circles. |
+| Ego-net cluster density | Most retrieved ego-net clusters have density larger than 0.2; Google+ circles average density is 0.352 | EgoNet-APM mean density is 0.1449; ego-cluster mean densities are 0.7251, 0.8310, and 0.8991 for Facebook, Enron, and AstroPh | Our final aggregated communities are less dense, but the local ego-net clusters themselves are very dense, consistent with the paper's microscopic-community claim. |
+| Ego-net conductance | Paper observes typically low conductance in retrieved ego-net clusters; Google+ circles average conductance is 0.1438 | Aggregated EgoNet-APM mean conductance is 0.8397 | This is the main numerical mismatch. Our conductance is measured after aggregating pair-score components into global communities, while the paper primarily analyzes local ego-net clusters and Google+ circles. |
 | Circle reconstruction | LP: node precision 0.86, edge precision 0.87, edge recall 0.96; SLPA: node precision 0.85, edge recall 0.98 | No circle labels are used in our experiment | Not directly comparable. We did not use Facebook circle ground truth; we evaluate unsupervised community quality and held-out edge prediction instead. |
-| Friend suggestion | Ego-net friendship scores outperform common friends and Adamic-Adar in ranked precision/recall curves; live Google+ acceptance rate increases by more than 0.5% | EgoNet-APM AUC/AP: Facebook 0.9818/0.9809, Enron 0.9397/0.9396, AstroPh 0.9715/0.9715 | Strong qualitative agreement: ego-net co-clustering gives a useful local link-prediction signal. |
-| Runtime/scalability | Fast sequential ego-net construction is 5x faster than naive on LiveJournal; distributed version is 11x faster | EgoNet-APM runtime is 19-25 seconds; Louvain is 0.5-2.7 seconds | Our Python version reproduces the local algorithm, not the paper's MapReduce scalability optimization. The higher runtime confirms why the original paper emphasizes efficient all-ego-net construction. |
+| Friend suggestion | Ego-net friendship scores outperform common friends and Adamic-Adar in ranked precision/recall curves; live Google+ acceptance rate increases by more than 0.5% | EgoNet-APM AUC/AP: Facebook 0.9807/0.9799, Enron 0.9387/0.9386, AstroPh 0.9725/0.9725 | Strong qualitative agreement: ego-net co-clustering gives a useful local link-prediction signal. |
+| Runtime/scalability | Fast sequential ego-net construction is 5x faster than naive on LiveJournal; distributed version is 11x faster | EgoNet-APM runtime is 6.8-8.8 seconds; Louvain is 0.3-1.7 seconds | Our Python version now uses triangle-based single-machine ego-net construction, but still does not implement the paper's MapReduce scalability optimization. |
 
-The strongest agreement with the paper is in the link-prediction behavior. The paper argues that ego-net friendship scores are useful local features for friend suggestion. Our AUC/AP results are high on all three paper datasets: Facebook 0.9818/0.9809, Enron 0.9397/0.9396, and AstroPh 0.9715/0.9715. This supports the same qualitative conclusion: co-occurrence inside ego-net communities gives a strong local similarity signal.
+The strongest agreement with the paper is in the link-prediction behavior. The paper argues that ego-net friendship scores are useful local features for friend suggestion. Our AUC/AP results are high on all three paper datasets: Facebook 0.9807/0.9799, Enron 0.9387/0.9386, and AstroPh 0.9725/0.9725. This supports the same qualitative conclusion: co-occurrence inside ego-net communities gives a strong local similarity signal.
 
 The main difference is in global community quality. Louvain obtains much higher modularity and lower conductance because it directly optimizes a global partition. EgoNet-APM in this implementation first creates local ego-net clusters and then aggregates pair scores into connected components; this is more conservative and not designed to maximize global modularity. Therefore, lower modularity does not contradict the paper's main idea, which emphasizes microscopic ego-net structure and friend suggestion rather than global modularity optimization.
 
-In runtime, EgoNet-APM is slower than Louvain in this single-machine Python implementation: 19-25 seconds versus 0.5-2.7 seconds. The paper's contribution includes a MapReduce construction method for all ego-nets, while our implementation keeps the local algorithmic logic but does not implement distributed execution. Thus the runtime comparison shows both the cost of repeated ego-net clustering and why the paper emphasizes scalable ego-net construction.
+In runtime, EgoNet-APM is slower than Louvain in this single-machine Python implementation: 6.8-8.8 seconds versus 0.3-1.7 seconds. The implementation now uses triangle enumeration to construct all ego-net edge sets, which is closer to the paper's fast construction idea than repeated per-node subgraph extraction. It still does not implement distributed MapReduce execution.
 
 ## Optional Dynamic Graph Extension
 
