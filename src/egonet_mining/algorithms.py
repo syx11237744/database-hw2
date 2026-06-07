@@ -27,6 +27,25 @@ class EgoFeatureResult:
     stats: dict[str, float]
 
 
+@dataclass(frozen=True)
+class LocalCSRGraph:
+    """Small undirected ego-net graph stored as CSR arrays."""
+
+    nodes: list[str]
+    node_to_idx: dict[str, int]
+    indptr: list[int]
+    indices: list[int]
+    degrees: list[int]
+    edge_count: int
+
+    @property
+    def node_count(self) -> int:
+        return len(self.nodes)
+
+    def neighbors(self, idx: int) -> list[int]:
+        return self.indices[self.indptr[idx] : self.indptr[idx + 1]]
+
+
 def _sorted_pair(source: str, target: str) -> tuple[str, str]:
     return (source, target) if source <= target else (target, source)
 
@@ -152,9 +171,109 @@ def ego_graph_from_edges(edges: set[tuple[str, str]]) -> nx.Graph:
     return ego_graph
 
 
+def csr_graph_from_edges(edges: set[tuple[str, str]]) -> LocalCSRGraph:
+    nodes = sorted({node for edge in edges for node in edge})
+    node_to_idx = {node: idx for idx, node in enumerate(nodes)}
+    adj: list[list[int]] = [[] for _ in nodes]
+    for source, target in edges:
+        source_idx = node_to_idx[source]
+        target_idx = node_to_idx[target]
+        adj[source_idx].append(target_idx)
+        adj[target_idx].append(source_idx)
+
+    indptr = [0]
+    indices: list[int] = []
+    degrees: list[int] = []
+    for neighbors in adj:
+        neighbors.sort()
+        degrees.append(len(neighbors))
+        indices.extend(neighbors)
+        indptr.append(len(indices))
+    return LocalCSRGraph(
+        nodes=nodes,
+        node_to_idx=node_to_idx,
+        indptr=indptr,
+        indices=indices,
+        degrees=degrees,
+        edge_count=len(edges),
+    )
+
+
 def ego_connected_components(graph: nx.Graph) -> list[set[str]]:
     """Connected-components baseline inside one ego-net Z_u."""
     return [set(component) for component in nx.connected_components(graph)]
+
+
+def csr_connected_components(graph: LocalCSRGraph) -> list[list[int]]:
+    visited = [False] * graph.node_count
+    components: list[list[int]] = []
+    for start in range(graph.node_count):
+        if visited[start]:
+            continue
+        visited[start] = True
+        component: list[int] = []
+        stack = [start]
+        while stack:
+            node = stack.pop()
+            component.append(node)
+            for neighbor in graph.neighbors(node):
+                if not visited[neighbor]:
+                    visited[neighbor] = True
+                    stack.append(neighbor)
+        component.sort()
+        components.append(component)
+    return components
+
+
+def csr_apm_label_propagation(
+    graph: LocalCSRGraph,
+    *,
+    alpha: float = 0.3,
+    beta: float = 0.01,
+    max_iter: int = 20,
+    seed: int = 42,
+) -> list[list[int]]:
+    if graph.node_count == 0:
+        return []
+    rng = random.Random(seed)
+    labels = list(range(graph.node_count))
+    label_sizes = [1] * graph.node_count
+    nodes = list(range(graph.node_count))
+
+    for _ in range(max_iter):
+        changed = 0
+        order = nodes[:]
+        rng.shuffle(order)
+        for node in order:
+            neighbor_labels: dict[int, int] = {}
+            for neighbor in graph.neighbors(node):
+                label = labels[neighbor]
+                neighbor_labels[label] = neighbor_labels.get(label, 0) + 1
+            if not neighbor_labels:
+                continue
+            best_score = -math.inf
+            best_labels: list[int] = []
+            for label, count in neighbor_labels.items():
+                score = count - alpha * (label_sizes[label] - count)
+                if score > best_score:
+                    best_score = score
+                    best_labels = [label]
+                elif score == best_score:
+                    best_labels.append(label)
+            new_label = rng.choice(best_labels)
+            old_label = labels[node]
+            if new_label != old_label:
+                labels[node] = new_label
+                label_sizes[old_label] -= 1
+                label_sizes[new_label] += 1
+                changed += 1
+        if changed / graph.node_count < beta:
+            break
+
+    communities: dict[int, list[int]] = defaultdict(list)
+    for node, label in enumerate(labels):
+        communities[label].append(node)
+    return [nodes for nodes in communities.values()]
 
 
 def _cluster_density(graph: nx.Graph, cluster: set[str]) -> float:
@@ -170,6 +289,30 @@ def _cluster_conductance(graph: nx.Graph, cluster: set[str]) -> float:
     cut_edges = nx.cut_size(graph, cluster)
     volume = sum(dict(graph.degree(cluster)).values())
     return cut_edges / volume if volume else 0.0
+
+
+def _csr_cluster_profile(
+    graph: LocalCSRGraph,
+    cluster: list[int],
+) -> tuple[float, float, dict[int, set[int]]]:
+    cluster_set = set(cluster)
+    possible = len(cluster) * (len(cluster) - 1) / 2
+    internal_twice = 0
+    volume = 0
+    neighbors_in_cluster: dict[int, set[int]] = {}
+    for node in cluster:
+        local_neighbors = {neighbor for neighbor in graph.neighbors(node) if neighbor in cluster_set}
+        neighbors_in_cluster[node] = local_neighbors
+        internal_twice += len(local_neighbors)
+        volume += graph.degrees[node]
+    internal_edges = internal_twice / 2
+    density = internal_edges / possible if possible else 0.0
+    if not cluster or len(cluster) == graph.node_count:
+        conductance = 0.0
+    else:
+        cut_edges = volume - internal_twice
+        conductance = cut_edges / volume if volume else 0.0
+    return density, conductance, neighbors_in_cluster
 
 
 def _quantile(values: list[float], probability: float) -> float:
@@ -270,9 +413,9 @@ def ego_feature_scores(
         ego_edges = ego_edges_by_node.get(ego, set())
         if not ego_edges:
             continue
-        ego_graph = ego_graph_from_edges(ego_edges)
+        ego_graph = csr_graph_from_edges(ego_edges)
         if clusterer == "apm":
-            clusters = apm_label_propagation(
+            clusters = csr_apm_label_propagation(
                 ego_graph,
                 alpha=alpha,
                 beta=beta,
@@ -280,48 +423,46 @@ def ego_feature_scores(
                 seed=seed + node_offsets[ego],
             )
         elif clusterer == "cc":
-            clusters = ego_connected_components(ego_graph)
+            clusters = csr_connected_components(ego_graph)
         else:
             raise ValueError(f"Unsupported ego-net clusterer: {clusterer}")
 
         for cluster in clusters:
             if len(cluster) < min_cluster_size:
                 continue
-            cluster_set = set(cluster)
-            nodes = sorted(cluster_set)
-            density = _cluster_density(ego_graph, cluster_set)
-            conductance = _cluster_conductance(ego_graph, cluster_set)
+            nodes = [ego_graph.nodes[idx] for idx in cluster]
+            cluster_set = set(nodes)
+            density, conductance, neighbors_in_cluster = _csr_cluster_profile(ego_graph, cluster)
             all_ego_clusters.append(cluster_set)
             densities.append(density)
             conductances.append(conductance)
 
             if candidate_set is None:
                 pairs = [
-                    pair
-                    for pair in itertools.combinations(nodes, 2)
-                    if pair not in graph_edges
+                    (ego_graph.node_to_idx[source], ego_graph.node_to_idx[target], source, target)
+                    for source, target in itertools.combinations(nodes, 2)
+                    if (source, target) not in graph_edges
                 ]
             else:
-                pairs = _cluster_candidate_pairs(nodes, cluster_set, candidate_by_node)
+                pairs = [
+                    (ego_graph.node_to_idx[source], ego_graph.node_to_idx[target], source, target)
+                    for source, target in _cluster_candidate_pairs(nodes, cluster_set, candidate_by_node)
+                ]
             if not pairs:
                 continue
 
-            neighbors_in_cluster = {
-                node: set(ego_graph.neighbors(node)).intersection(cluster_set)
-                for node in nodes
-            }
-            for source, target in pairs:
+            for source_idx, target_idx, source, target in pairs:
                 if "W1" in score_tables:
                     score_tables["W1"][(source, target)] += 1.0
                 if "W2" in score_tables:
                     score_tables["W2"][(source, target)] += density
                 if "W3" in score_tables:
                     score_tables["W3"][(source, target)] += len(
-                        neighbors_in_cluster[source].intersection(neighbors_in_cluster[target])
+                        neighbors_in_cluster[source_idx].intersection(neighbors_in_cluster[target_idx])
                     )
                 if "W4" in score_tables:
                     score_tables["W4"][(source, target)] += (
-                        min(len(neighbors_in_cluster[source]), len(neighbors_in_cluster[target]))
+                        min(len(neighbors_in_cluster[source_idx]), len(neighbors_in_cluster[target_idx]))
                         / len(cluster_set)
                     )
 
