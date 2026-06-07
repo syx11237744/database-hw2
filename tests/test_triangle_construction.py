@@ -171,6 +171,51 @@ class TriangleConstructionTest(unittest.TestCase):
             sorted(sorted(cluster) for cluster in csr_clusters),
         )
 
+    def test_parallel_candidate_scoring_matches_serial(self) -> None:
+        graph = nx.Graph()
+        graph.add_edges_from(
+            [
+                ("u", "a"),
+                ("u", "b"),
+                ("u", "c"),
+                ("u", "d"),
+                ("a", "c"),
+                ("b", "c"),
+                ("b", "d"),
+                ("v", "a"),
+                ("v", "b"),
+                ("v", "d"),
+            ]
+        )
+        candidates = [("a", "b"), ("c", "d")]
+
+        serial = ego_feature_scores(
+            graph,
+            clusterer="apm",
+            candidate_pairs=candidates,
+            construction="triangle",
+            seed=17,
+            ego_workers=1,
+        )
+        try:
+            parallel = ego_feature_scores(
+                graph,
+                clusterer="apm",
+                candidate_pairs=candidates,
+                construction="triangle",
+                seed=17,
+                ego_workers=2,
+            )
+        except PermissionError as exc:
+            self.skipTest(f"process pools are unavailable in this sandbox: {exc}")
+
+        self.assertEqual(serial.scores, parallel.scores)
+        self.assertEqual(serial.stats, parallel.stats)
+        self.assertEqual(
+            sorted(sorted(cluster) for cluster in serial.clusters),
+            sorted(sorted(cluster) for cluster in parallel.clusters),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

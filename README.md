@@ -35,13 +35,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/generate_datasets.py
-python run_experiments.py --seeds 1 2 3 4 5
+python run_experiments.py --seeds 1 2 3 4 5 --ego-workers 4
 python plot_results.py
 python run_dynamic_experiments.py
 python plot_dynamic_results.py
 ```
 
-The main per-seed results are saved to `results/experiment_results.csv`, mean/std summaries are saved to `results/experiment_summary.csv`, top-k precision/recall curves are saved to `results/topk_precision_recall.csv`, top-k mean/std summaries are saved to `results/topk_precision_recall_summary.csv`, optimization comparisons are saved to `results/runtime_csr_comparison.csv`, `results/runtime_array_apm_comparison.csv`, and `results/runtime_pair_accumulator_comparison.csv`, and the plot is saved to `results/quality_runtime.png`.
+The main per-seed results are saved to `results/experiment_results.csv`, mean/std summaries are saved to `results/experiment_summary.csv`, top-k precision/recall curves are saved to `results/topk_precision_recall.csv`, top-k mean/std summaries are saved to `results/topk_precision_recall_summary.csv`, optimization comparisons are saved to `results/runtime_csr_comparison.csv`, `results/runtime_array_apm_comparison.csv`, `results/runtime_pair_accumulator_comparison.csv`, `results/runtime_candidate_only_comparison.csv`, `results/runtime_multiprocess_comparison.csv`, and `results/runtime_total_optimization_comparison.csv`, and the plot is saved to `results/quality_runtime.png`.
 
 Each per-seed row records the train/test split seed, negative-sampling seed, APM tie-break seed strategy, local ego-cluster density/conductance quantiles, and circle-reconstruction availability. Circle reconstruction is marked unavailable for the included SNAP combined graph files because the repository does not include ground-truth circle membership files.
 
@@ -58,7 +58,7 @@ The Spark results are saved to `results/spark_experiment_results.csv`. The scrip
 
 ## Reproduction Notes
 
-The original paper focuses on large-scale MapReduce construction of all ego-nets. This implementation now uses a single-machine triangle-enumeration constructor for all `Z_u` edge sets. It also includes a local PySpark version of the paper's partition-triple shuffle, but the Spark local result is a functional reproduction of the dataflow rather than a proof of cluster-scale speedup. For debugging, `run_experiments.py --construction neighbor` switches to per-node neighborhood intersection construction.
+The original paper focuses on large-scale MapReduce construction of all ego-nets. This implementation now uses a single-machine triangle-enumeration constructor for all `Z_u` edge sets. It also includes a local PySpark version of the paper's partition-triple shuffle, but the Spark local result is a functional reproduction of the dataflow rather than a proof of cluster-scale speedup. The static experiment can parallelize independent per-ego clustering/scoring tasks with `--ego-workers N`; use `--ego-workers 1` in restricted environments that do not allow Python process pools. For debugging, `run_experiments.py --construction neighbor` switches to per-node neighborhood intersection construction.
 
 The APM label-propagation update follows the paper appendix:
 

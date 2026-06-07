@@ -1,5 +1,5 @@
 dataset,algorithm,clusterer,feature,metric,seeds,n,mean,std
-astro_ph,EgoNet-APM-W1,APM,W1,runtime_sec,1 2 3 4 5,5.0,2.895715908193961,0.14017878239400372
+astro_ph,EgoNet-APM-W1,APM,W1,runtime_sec,1 2 3 4 5,5.0,4.9924011582508685,0.09662953472289758
 astro_ph,EgoNet-APM-W1,APM,W1,auc,1 2 3 4 5,5.0,0.974277,0.0038193254149129757
 astro_ph,EgoNet-APM-W1,APM,W1,average_precision,1 2 3 4 5,5.0,0.9742081848152475,0.0038377645129578403
 astro_ph,EgoNet-APM-W1,APM,W1,ego_cluster_count,1 2 3 4 5,5.0,41974.0,34.40930106817051
@@ -16,7 +16,7 @@ astro_ph,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.10412976076987622,0.0009678530769186171
 astro_ph,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.39282778874780094,0.0011233493043369025
 astro_ph,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.6183150183150183,0.0016381450384613785
-astro_ph,EgoNet-APM-W2,APM,W2,runtime_sec,1 2 3 4 5,5.0,2.895715908193961,0.14017878239400372
+astro_ph,EgoNet-APM-W2,APM,W2,runtime_sec,1 2 3 4 5,5.0,4.9924011582508685,0.09662953472289758
 astro_ph,EgoNet-APM-W2,APM,W2,auc,1 2 3 4 5,5.0,0.9743333,0.0038339565660033222
 astro_ph,EgoNet-APM-W2,APM,W2,average_precision,1 2 3 4 5,5.0,0.9743229537444641,0.003860891757568869
 astro_ph,EgoNet-APM-W2,APM,W2,ego_cluster_count,1 2 3 4 5,5.0,41974.0,34.40930106817051
@@ -33,7 +33,7 @@ astro_ph,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.10412976076987622,0.0009678530769186171
 astro_ph,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.39282778874780094,0.0011233493043369025
 astro_ph,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.6183150183150183,0.0016381450384613785
-astro_ph,EgoNet-APM-W3,APM,W3,runtime_sec,1 2 3 4 5,5.0,2.895715908193961,0.14017878239400372
+astro_ph,EgoNet-APM-W3,APM,W3,runtime_sec,1 2 3 4 5,5.0,4.9924011582508685,0.09662953472289758
 astro_ph,EgoNet-APM-W3,APM,W3,auc,1 2 3 4 5,5.0,0.9737493,0.003816250591221697
 astro_ph,EgoNet-APM-W3,APM,W3,average_precision,1 2 3 4 5,5.0,0.9736835116104973,0.003849706061035522
 astro_ph,EgoNet-APM-W3,APM,W3,ego_cluster_count,1 2 3 4 5,5.0,41974.0,34.40930106817051
@@ -50,7 +50,7 @@ astro_ph,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.10412976076987622,0.0009678530769186171
 astro_ph,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.39282778874780094,0.0011233493043369025
 astro_ph,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.6183150183150183,0.0016381450384613785
-astro_ph,EgoNet-APM-W4,APM,W4,runtime_sec,1 2 3 4 5,5.0,2.895715908193961,0.14017878239400372
+astro_ph,EgoNet-APM-W4,APM,W4,runtime_sec,1 2 3 4 5,5.0,4.9924011582508685,0.09662953472289758
 astro_ph,EgoNet-APM-W4,APM,W4,auc,1 2 3 4 5,5.0,0.9743176,0.003814953495784729
 astro_ph,EgoNet-APM-W4,APM,W4,average_precision,1 2 3 4 5,5.0,0.9743089226814651,0.0038376294147824796
 astro_ph,EgoNet-APM-W4,APM,W4,ego_cluster_count,1 2 3 4 5,5.0,41974.0,34.40930106817051
@@ -67,7 +67,7 @@ astro_ph,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.10412976076987622,0.0009678530769186171
 astro_ph,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.39282778874780094,0.0011233493043369025
 astro_ph,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.6183150183150183,0.0016381450384613785
-astro_ph,EgoNet-CC-W1,CC,W1,runtime_sec,1 2 3 4 5,5.0,2.479087825026363,0.16931733084322872
+astro_ph,EgoNet-CC-W1,CC,W1,runtime_sec,1 2 3 4 5,5.0,2.38189748339355,0.05402224878490889
 astro_ph,EgoNet-CC-W1,CC,W1,auc,1 2 3 4 5,5.0,0.9856966,0.0021621611410808585
 astro_ph,EgoNet-CC-W1,CC,W1,average_precision,1 2 3 4 5,5.0,0.9856207980534838,0.0022391328564303607
 astro_ph,EgoNet-CC-W1,CC,W1,ego_cluster_count,1 2 3 4 5,5.0,22139.8,9.20326029187483
@@ -84,7 +84,7 @@ astro_ph,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-astro_ph,EgoNet-CC-W2,CC,W2,runtime_sec,1 2 3 4 5,5.0,2.479087825026363,0.16931733084322872
+astro_ph,EgoNet-CC-W2,CC,W2,runtime_sec,1 2 3 4 5,5.0,2.38189748339355,0.05402224878490889
 astro_ph,EgoNet-CC-W2,CC,W2,auc,1 2 3 4 5,5.0,0.9860142000000001,0.002116039626282999
 astro_ph,EgoNet-CC-W2,CC,W2,average_precision,1 2 3 4 5,5.0,0.986219563614741,0.0021707558898499666
 astro_ph,EgoNet-CC-W2,CC,W2,ego_cluster_count,1 2 3 4 5,5.0,22139.8,9.20326029187483
@@ -101,7 +101,7 @@ astro_ph,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-astro_ph,EgoNet-CC-W3,CC,W3,runtime_sec,1 2 3 4 5,5.0,2.479087825026363,0.16931733084322872
+astro_ph,EgoNet-CC-W3,CC,W3,runtime_sec,1 2 3 4 5,5.0,2.38189748339355,0.05402224878490889
 astro_ph,EgoNet-CC-W3,CC,W3,auc,1 2 3 4 5,5.0,0.9827144999999999,0.00265051098846998
 astro_ph,EgoNet-CC-W3,CC,W3,average_precision,1 2 3 4 5,5.0,0.982581436562309,0.0026833524942369248
 astro_ph,EgoNet-CC-W3,CC,W3,ego_cluster_count,1 2 3 4 5,5.0,22139.8,9.20326029187483
@@ -118,7 +118,7 @@ astro_ph,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-astro_ph,EgoNet-CC-W4,CC,W4,runtime_sec,1 2 3 4 5,5.0,2.479087825026363,0.16931733084322872
+astro_ph,EgoNet-CC-W4,CC,W4,runtime_sec,1 2 3 4 5,5.0,2.38189748339355,0.05402224878490889
 astro_ph,EgoNet-CC-W4,CC,W4,auc,1 2 3 4 5,5.0,0.9856076,0.0020712641791910745
 astro_ph,EgoNet-CC-W4,CC,W4,average_precision,1 2 3 4 5,5.0,0.9857800183942375,0.002119341258460531
 astro_ph,EgoNet-CC-W4,CC,W4,ego_cluster_count,1 2 3 4 5,5.0,22139.8,9.20326029187483
@@ -135,7 +135,7 @@ astro_ph,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-astro_ph,Louvain,global,community_common_neighbors,runtime_sec,1 2 3 4 5,5.0,1.6320185750257223,0.15720008216909867
+astro_ph,Louvain,global,community_common_neighbors,runtime_sec,1 2 3 4 5,5.0,1.62327593350783,0.11962328934149767
 astro_ph,Louvain,global,community_common_neighbors,modularity,1 2 3 4 5,5.0,0.627340861791609,0.001368150908317294
 astro_ph,Louvain,global,community_common_neighbors,coverage,1 2 3 4 5,5.0,0.691607206292819,0.004088180690710114
 astro_ph,Louvain,global,community_common_neighbors,mean_density,1 2 3 4 5,5.0,0.8584322175542202,0.0035141740708010995
@@ -156,7 +156,7 @@ astro_ph,Louvain,global,community_common_neighbors,ego_cluster_conductance_p25,1
 astro_ph,Louvain,global,community_common_neighbors,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,Louvain,global,community_common_neighbors,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 astro_ph,Louvain,global,community_common_neighbors,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-enron,EgoNet-APM-W1,APM,W1,runtime_sec,1 2 3 4 5,5.0,2.86065275860019,0.11444474745696362
+enron,EgoNet-APM-W1,APM,W1,runtime_sec,1 2 3 4 5,5.0,6.020095958188176,0.11192255063827763
 enron,EgoNet-APM-W1,APM,W1,auc,1 2 3 4 5,5.0,0.9338468,0.0038999395604291153
 enron,EgoNet-APM-W1,APM,W1,average_precision,1 2 3 4 5,5.0,0.9336132579479672,0.003724342332410174
 enron,EgoNet-APM-W1,APM,W1,ego_cluster_count,1 2 3 4 5,5.0,53570.0,43.45687517528153
@@ -173,7 +173,7 @@ enron,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.2,0.0
 enron,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.6556829391791532,0.0021240289487507824
 enron,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.8181818181818182,0.0
-enron,EgoNet-APM-W2,APM,W2,runtime_sec,1 2 3 4 5,5.0,2.86065275860019,0.11444474745696362
+enron,EgoNet-APM-W2,APM,W2,runtime_sec,1 2 3 4 5,5.0,6.020095958188176,0.11192255063827763
 enron,EgoNet-APM-W2,APM,W2,auc,1 2 3 4 5,5.0,0.9339003,0.003915611871087348
 enron,EgoNet-APM-W2,APM,W2,average_precision,1 2 3 4 5,5.0,0.9337567246892776,0.0037494612567214505
 enron,EgoNet-APM-W2,APM,W2,ego_cluster_count,1 2 3 4 5,5.0,53570.0,43.45687517528153
@@ -190,7 +190,7 @@ enron,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.2,0.0
 enron,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.6556829391791532,0.0021240289487507824
 enron,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.8181818181818182,0.0
-enron,EgoNet-APM-W3,APM,W3,runtime_sec,1 2 3 4 5,5.0,2.86065275860019,0.11444474745696362
+enron,EgoNet-APM-W3,APM,W3,runtime_sec,1 2 3 4 5,5.0,6.020095958188176,0.11192255063827763
 enron,EgoNet-APM-W3,APM,W3,auc,1 2 3 4 5,5.0,0.9333453,0.004042024594803943
 enron,EgoNet-APM-W3,APM,W3,average_precision,1 2 3 4 5,5.0,0.9331110281092748,0.003928624043711584
 enron,EgoNet-APM-W3,APM,W3,ego_cluster_count,1 2 3 4 5,5.0,53570.0,43.45687517528153
@@ -207,7 +207,7 @@ enron,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.2,0.0
 enron,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.6556829391791532,0.0021240289487507824
 enron,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.8181818181818182,0.0
-enron,EgoNet-APM-W4,APM,W4,runtime_sec,1 2 3 4 5,5.0,2.86065275860019,0.11444474745696362
+enron,EgoNet-APM-W4,APM,W4,runtime_sec,1 2 3 4 5,5.0,6.020095958188176,0.11192255063827763
 enron,EgoNet-APM-W4,APM,W4,auc,1 2 3 4 5,5.0,0.9339577,0.0039715739417767034
 enron,EgoNet-APM-W4,APM,W4,average_precision,1 2 3 4 5,5.0,0.9338477547278803,0.003839438074219106
 enron,EgoNet-APM-W4,APM,W4,ego_cluster_count,1 2 3 4 5,5.0,53570.0,43.45687517528153
@@ -224,7 +224,7 @@ enron,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.2,0.0
 enron,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.6556829391791532,0.0021240289487507824
 enron,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.8181818181818182,0.0
-enron,EgoNet-CC-W1,CC,W1,runtime_sec,1 2 3 4 5,5.0,1.6412684834562241,0.15834244341773712
+enron,EgoNet-CC-W1,CC,W1,runtime_sec,1 2 3 4 5,5.0,1.6521010586060583,0.059221884388623296
 enron,EgoNet-CC-W1,CC,W1,auc,1 2 3 4 5,5.0,0.9797916,0.003461790421877097
 enron,EgoNet-CC-W1,CC,W1,average_precision,1 2 3 4 5,5.0,0.9795704128189546,0.003568866196696253
 enron,EgoNet-CC-W1,CC,W1,ego_cluster_count,1 2 3 4 5,5.0,27168.4,17.952715672009067
@@ -241,7 +241,7 @@ enron,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-enron,EgoNet-CC-W2,CC,W2,runtime_sec,1 2 3 4 5,5.0,1.6412684834562241,0.15834244341773712
+enron,EgoNet-CC-W2,CC,W2,runtime_sec,1 2 3 4 5,5.0,1.6521010586060583,0.059221884388623296
 enron,EgoNet-CC-W2,CC,W2,auc,1 2 3 4 5,5.0,0.9801523,0.003259248103474173
 enron,EgoNet-CC-W2,CC,W2,average_precision,1 2 3 4 5,5.0,0.9802538609106931,0.003267007742241084
 enron,EgoNet-CC-W2,CC,W2,ego_cluster_count,1 2 3 4 5,5.0,27168.4,17.952715672009067
@@ -258,7 +258,7 @@ enron,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-enron,EgoNet-CC-W3,CC,W3,runtime_sec,1 2 3 4 5,5.0,1.6412684834562241,0.15834244341773712
+enron,EgoNet-CC-W3,CC,W3,runtime_sec,1 2 3 4 5,5.0,1.6521010586060583,0.059221884388623296
 enron,EgoNet-CC-W3,CC,W3,auc,1 2 3 4 5,5.0,0.9742452,0.004294246391976131
 enron,EgoNet-CC-W3,CC,W3,average_precision,1 2 3 4 5,5.0,0.9739972890558947,0.004473737740610911
 enron,EgoNet-CC-W3,CC,W3,ego_cluster_count,1 2 3 4 5,5.0,27168.4,17.952715672009067
@@ -275,7 +275,7 @@ enron,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-enron,EgoNet-CC-W4,CC,W4,runtime_sec,1 2 3 4 5,5.0,1.6412684834562241,0.15834244341773712
+enron,EgoNet-CC-W4,CC,W4,runtime_sec,1 2 3 4 5,5.0,1.6521010586060583,0.059221884388623296
 enron,EgoNet-CC-W4,CC,W4,auc,1 2 3 4 5,5.0,0.9800231,0.003227178458034192
 enron,EgoNet-CC-W4,CC,W4,average_precision,1 2 3 4 5,5.0,0.9801037995288195,0.0032354849791686284
 enron,EgoNet-CC-W4,CC,W4,ego_cluster_count,1 2 3 4 5,5.0,27168.4,17.952715672009067
@@ -292,7 +292,7 @@ enron,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 enron,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-enron,Louvain,global,community_common_neighbors,runtime_sec,1 2 3 4 5,5.0,1.9513930663932115,0.26323622978986183
+enron,Louvain,global,community_common_neighbors,runtime_sec,1 2 3 4 5,5.0,2.0105085083283485,0.18236863194965913
 enron,Louvain,global,community_common_neighbors,modularity,1 2 3 4 5,5.0,0.6149549413124268,0.0028276812038244277
 enron,Louvain,global,community_common_neighbors,coverage,1 2 3 4 5,5.0,0.7303586372114138,0.015381440528842704
 enron,Louvain,global,community_common_neighbors,mean_density,1 2 3 4 5,5.0,0.8846595175924225,0.0032846555126647367
@@ -313,7 +313,7 @@ enron,Louvain,global,community_common_neighbors,ego_cluster_conductance_p25,1 2 
 enron,Louvain,global,community_common_neighbors,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 enron,Louvain,global,community_common_neighbors,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 enron,Louvain,global,community_common_neighbors,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-facebook,EgoNet-APM-W1,APM,W1,runtime_sec,1 2 3 4 5,5.0,2.3804859502706677,0.12875937478842392
+facebook,EgoNet-APM-W1,APM,W1,runtime_sec,1 2 3 4 5,5.0,4.044662900036201,0.130286850684389
 facebook,EgoNet-APM-W1,APM,W1,auc,1 2 3 4 5,5.0,0.9811594705909575,0.0034693582150449355
 facebook,EgoNet-APM-W1,APM,W1,average_precision,1 2 3 4 5,5.0,0.9801906140576185,0.0037097622003510783
 facebook,EgoNet-APM-W1,APM,W1,ego_cluster_count,1 2 3 4 5,5.0,7454.8,21.15892246783848
@@ -330,7 +330,7 @@ facebook,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.13965841029954834,0.0037607688818475636
 facebook,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.6858332040791127,0.004988045897658587
 facebook,EgoNet-APM-W1,APM,W1,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.8670872661036596,0.0009404889324142319
-facebook,EgoNet-APM-W2,APM,W2,runtime_sec,1 2 3 4 5,5.0,2.3804859502706677,0.12875937478842392
+facebook,EgoNet-APM-W2,APM,W2,runtime_sec,1 2 3 4 5,5.0,4.044662900036201,0.130286850684389
 facebook,EgoNet-APM-W2,APM,W2,auc,1 2 3 4 5,5.0,0.9811761817349767,0.0034941451567237504
 facebook,EgoNet-APM-W2,APM,W2,average_precision,1 2 3 4 5,5.0,0.9803054779025182,0.003738509385407954
 facebook,EgoNet-APM-W2,APM,W2,ego_cluster_count,1 2 3 4 5,5.0,7454.8,21.15892246783848
@@ -347,7 +347,7 @@ facebook,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.13965841029954834,0.0037607688818475636
 facebook,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.6858332040791127,0.004988045897658587
 facebook,EgoNet-APM-W2,APM,W2,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.8670872661036596,0.0009404889324142319
-facebook,EgoNet-APM-W3,APM,W3,runtime_sec,1 2 3 4 5,5.0,2.3804859502706677,0.12875937478842392
+facebook,EgoNet-APM-W3,APM,W3,runtime_sec,1 2 3 4 5,5.0,4.044662900036201,0.130286850684389
 facebook,EgoNet-APM-W3,APM,W3,auc,1 2 3 4 5,5.0,0.9805684102817241,0.0037133452789930906
 facebook,EgoNet-APM-W3,APM,W3,average_precision,1 2 3 4 5,5.0,0.9796379929863873,0.004011095570124762
 facebook,EgoNet-APM-W3,APM,W3,ego_cluster_count,1 2 3 4 5,5.0,7454.8,21.15892246783848
@@ -364,7 +364,7 @@ facebook,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.13965841029954834,0.0037607688818475636
 facebook,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.6858332040791127,0.004988045897658587
 facebook,EgoNet-APM-W3,APM,W3,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.8670872661036596,0.0009404889324142319
-facebook,EgoNet-APM-W4,APM,W4,runtime_sec,1 2 3 4 5,5.0,2.3804859502706677,0.12875937478842392
+facebook,EgoNet-APM-W4,APM,W4,runtime_sec,1 2 3 4 5,5.0,4.044662900036201,0.130286850684389
 facebook,EgoNet-APM-W4,APM,W4,auc,1 2 3 4 5,5.0,0.9817070819257409,0.0034934170550504017
 facebook,EgoNet-APM-W4,APM,W4,average_precision,1 2 3 4 5,5.0,0.9811606890877793,0.0037584134979347325
 facebook,EgoNet-APM-W4,APM,W4,ego_cluster_count,1 2 3 4 5,5.0,7454.8,21.15892246783848
@@ -381,7 +381,7 @@ facebook,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.13965841029954834,0.0037607688818475636
 facebook,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.6858332040791127,0.004988045897658587
 facebook,EgoNet-APM-W4,APM,W4,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.8670872661036596,0.0009404889324142319
-facebook,EgoNet-CC-W1,CC,W1,runtime_sec,1 2 3 4 5,5.0,2.0080271586310117,0.14923562662274795
+facebook,EgoNet-CC-W1,CC,W1,runtime_sec,1 2 3 4 5,5.0,2.4019532084465025,0.11265477827051543
 facebook,EgoNet-CC-W1,CC,W1,auc,1 2 3 4 5,5.0,0.993348707585831,0.0022422097985047135
 facebook,EgoNet-CC-W1,CC,W1,average_precision,1 2 3 4 5,5.0,0.9918833841250555,0.0024202223324678025
 facebook,EgoNet-CC-W1,CC,W1,ego_cluster_count,1 2 3 4 5,5.0,3981.6,1.140175425099138
@@ -398,7 +398,7 @@ facebook,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W1,CC,W1,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-facebook,EgoNet-CC-W2,CC,W2,runtime_sec,1 2 3 4 5,5.0,2.0080271586310117,0.14923562662274795
+facebook,EgoNet-CC-W2,CC,W2,runtime_sec,1 2 3 4 5,5.0,2.4019532084465025,0.11265477827051543
 facebook,EgoNet-CC-W2,CC,W2,auc,1 2 3 4 5,5.0,0.9931756829716013,0.002269875192948074
 facebook,EgoNet-CC-W2,CC,W2,average_precision,1 2 3 4 5,5.0,0.9920221632399915,0.0023946811991866707
 facebook,EgoNet-CC-W2,CC,W2,ego_cluster_count,1 2 3 4 5,5.0,3981.6,1.140175425099138
@@ -415,7 +415,7 @@ facebook,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W2,CC,W2,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-facebook,EgoNet-CC-W3,CC,W3,runtime_sec,1 2 3 4 5,5.0,2.0080271586310117,0.14923562662274795
+facebook,EgoNet-CC-W3,CC,W3,runtime_sec,1 2 3 4 5,5.0,2.4019532084465025,0.11265477827051543
 facebook,EgoNet-CC-W3,CC,W3,auc,1 2 3 4 5,5.0,0.990714388552095,0.0027580332129784812
 facebook,EgoNet-CC-W3,CC,W3,average_precision,1 2 3 4 5,5.0,0.9894750988879873,0.003042964054777533
 facebook,EgoNet-CC-W3,CC,W3,ego_cluster_count,1 2 3 4 5,5.0,3981.6,1.140175425099138
@@ -432,7 +432,7 @@ facebook,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W3,CC,W3,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-facebook,EgoNet-CC-W4,CC,W4,runtime_sec,1 2 3 4 5,5.0,2.0080271586310117,0.14923562662274795
+facebook,EgoNet-CC-W4,CC,W4,runtime_sec,1 2 3 4 5,5.0,2.4019532084465025,0.11265477827051543
 facebook,EgoNet-CC-W4,CC,W4,auc,1 2 3 4 5,5.0,0.9936325399396342,0.0021860450877787233
 facebook,EgoNet-CC-W4,CC,W4,average_precision,1 2 3 4 5,5.0,0.9929786154668171,0.0023090465168904345
 facebook,EgoNet-CC-W4,CC,W4,ego_cluster_count,1 2 3 4 5,5.0,3981.6,1.140175425099138
@@ -449,7 +449,7 @@ facebook,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p25,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p50,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p75,1 2 3 4 5,5.0,0.0,0.0
 facebook,EgoNet-CC-W4,CC,W4,ego_cluster_conductance_p90,1 2 3 4 5,5.0,0.0,0.0
-facebook,Louvain,global,community_common_neighbors,runtime_sec,1 2 3 4 5,5.0,0.3003141501918435,0.015353009158571159
+facebook,Louvain,global,community_common_neighbors,runtime_sec,1 2 3 4 5,5.0,0.31875350838527083,0.014196561809600742
 facebook,Louvain,global,community_common_neighbors,modularity,1 2 3 4 5,5.0,0.834564392551003,0.00046357429815068076
 facebook,Louvain,global,community_common_neighbors,coverage,1 2 3 4 5,5.0,0.9608640901181427,0.00023912212061152324
 facebook,Louvain,global,community_common_neighbors,mean_density,1 2 3 4 5,5.0,0.28844285437636236,0.01380290963468691

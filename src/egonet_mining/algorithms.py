@@ -3,7 +3,9 @@ from __future__ import annotations
 import itertools
 import heapq
 import math
+import multiprocessing
 import random
+from concurrent.futures import ProcessPoolExecutor
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from collections.abc import Mapping
@@ -52,6 +54,28 @@ class CandidatePairIndex:
 
     pairs: list[tuple[str, str]]
     by_source: dict[str, list[tuple[str, int]]]
+
+
+@dataclass(frozen=True)
+class EgoWorkerContext:
+    clusterer: str
+    features: tuple[str, ...]
+    candidate_index: CandidatePairIndex
+    alpha: float
+    beta: float
+    max_iter: int
+    min_cluster_size: int
+
+
+@dataclass(frozen=True)
+class EgoTaskResult:
+    clusters: list[set[str]]
+    densities: list[float]
+    conductances: list[float]
+    score_items: list[tuple[int, float, float, float, float]]
+
+
+_EGO_WORKER_CONTEXT: EgoWorkerContext | None = None
 
 
 def _sorted_pair(source: str, target: str) -> tuple[str, str]:
@@ -302,19 +326,17 @@ def _cluster_conductance(graph: nx.Graph, cluster: set[str]) -> float:
     return cut_edges / volume if volume else 0.0
 
 
-def _csr_cluster_profile(
+def _csr_cluster_stats(
     graph: LocalCSRGraph,
     cluster: list[int],
-) -> tuple[float, float, dict[int, set[int]]]:
-    cluster_set = set(cluster)
+    cluster_set: set[int],
+) -> tuple[float, float]:
     possible = len(cluster) * (len(cluster) - 1) / 2
     internal_twice = 0
     volume = 0
-    neighbors_in_cluster: dict[int, set[int]] = {}
     for node in cluster:
-        local_neighbors = {neighbor for neighbor in graph.neighbors(node) if neighbor in cluster_set}
-        neighbors_in_cluster[node] = local_neighbors
-        internal_twice += len(local_neighbors)
+        local_degree = sum(1 for neighbor in graph.neighbors(node) if neighbor in cluster_set)
+        internal_twice += local_degree
         volume += graph.degrees[node]
     internal_edges = internal_twice / 2
     density = internal_edges / possible if possible else 0.0
@@ -323,7 +345,28 @@ def _csr_cluster_profile(
     else:
         cut_edges = volume - internal_twice
         conductance = cut_edges / volume if volume else 0.0
+    return density, conductance
+
+
+def _csr_cluster_profile(
+    graph: LocalCSRGraph,
+    cluster: list[int],
+) -> tuple[float, float, dict[int, set[int]]]:
+    cluster_set = set(cluster)
+    density, conductance = _csr_cluster_stats(graph, cluster, cluster_set)
+    neighbors_in_cluster = _csr_endpoint_neighbors_in_cluster(graph, cluster_set, cluster_set)
     return density, conductance, neighbors_in_cluster
+
+
+def _csr_endpoint_neighbors_in_cluster(
+    graph: LocalCSRGraph,
+    endpoint_nodes: set[int],
+    cluster_set: set[int],
+) -> dict[int, set[int]]:
+    return {
+        node: {neighbor for neighbor in graph.neighbors(node) if neighbor in cluster_set}
+        for node in endpoint_nodes
+    }
 
 
 def _quantile(values: list[float], probability: float) -> float:
@@ -396,6 +439,98 @@ def _scores_from_candidate_arrays(
     }
 
 
+def _init_ego_worker(context: EgoWorkerContext) -> None:
+    global _EGO_WORKER_CONTEXT
+    _EGO_WORKER_CONTEXT = context
+
+
+def _process_candidate_ego_task(task: tuple[set[tuple[str, str]], int]) -> EgoTaskResult:
+    context = _EGO_WORKER_CONTEXT
+    if context is None:
+        raise RuntimeError("ego worker context is not initialized")
+    ego_edges, task_seed = task
+    ego_graph = csr_graph_from_edges(ego_edges)
+    if context.clusterer == "apm":
+        clusters = csr_apm_label_propagation(
+            ego_graph,
+            alpha=context.alpha,
+            beta=context.beta,
+            max_iter=context.max_iter,
+            seed=task_seed,
+        )
+    elif context.clusterer == "cc":
+        clusters = csr_connected_components(ego_graph)
+    else:
+        raise ValueError(f"Unsupported ego-net clusterer: {context.clusterer}")
+
+    wants_w3 = "W3" in context.features
+    wants_w4 = "W4" in context.features
+    clusters_out: list[set[str]] = []
+    densities: list[float] = []
+    conductances: list[float] = []
+    score_items: list[tuple[int, float, float, float, float]] = []
+
+    for cluster in clusters:
+        if len(cluster) < context.min_cluster_size:
+            continue
+        cluster_idx_set = set(cluster)
+        nodes = [ego_graph.nodes[idx] for idx in cluster]
+        cluster_set = set(nodes)
+        density, conductance = _csr_cluster_stats(ego_graph, cluster, cluster_idx_set)
+        indexed_pairs = _cluster_candidate_pair_indices(
+            nodes,
+            cluster_set,
+            context.candidate_index,
+            ego_graph.node_to_idx,
+        )
+        clusters_out.append(cluster_set)
+        densities.append(density)
+        conductances.append(conductance)
+        if not indexed_pairs:
+            continue
+
+        neighbors_in_cluster: dict[int, set[int]] = {}
+        if wants_w3 or wants_w4:
+            endpoint_nodes = {
+                endpoint
+                for _, source_idx, target_idx in indexed_pairs
+                for endpoint in (source_idx, target_idx)
+            }
+            neighbors_in_cluster = _csr_endpoint_neighbors_in_cluster(
+                ego_graph,
+                endpoint_nodes,
+                cluster_idx_set,
+            )
+
+        cluster_size = len(cluster_set)
+        for pair_idx, source_idx, target_idx in indexed_pairs:
+            w3_score = (
+                float(len(neighbors_in_cluster[source_idx].intersection(neighbors_in_cluster[target_idx])))
+                if wants_w3
+                else 0.0
+            )
+            w4_score = (
+                min(len(neighbors_in_cluster[source_idx]), len(neighbors_in_cluster[target_idx])) / cluster_size
+                if wants_w4
+                else 0.0
+            )
+            score_items.append((pair_idx, 1.0, density, w3_score, w4_score))
+
+    return EgoTaskResult(
+        clusters=clusters_out,
+        densities=densities,
+        conductances=conductances,
+        score_items=score_items,
+    )
+
+
+def _process_pool_context():
+    methods = multiprocessing.get_all_start_methods()
+    if "fork" in methods:
+        return multiprocessing.get_context("fork")
+    return None
+
+
 def ego_feature_scores(
     graph: nx.Graph,
     *,
@@ -408,6 +543,7 @@ def ego_feature_scores(
     min_cluster_size: int = 2,
     seed: int = 42,
     construction: str = "triangle",
+    ego_workers: int = 1,
 ) -> EgoFeatureResult:
     """Compute paper W1-W4 ego-network friendship features.
 
@@ -421,8 +557,8 @@ def ego_feature_scores(
 
     sorted_nodes = sorted(graph.nodes())
     node_offsets = {node: offset for offset, node in enumerate(sorted_nodes)}
-    graph_edges = {_sorted_pair(source, target) for source, target in graph.edges()}
     candidate_index = _candidate_index(candidate_pairs)
+    graph_edges = {_sorted_pair(source, target) for source, target in graph.edges()} if candidate_index is None else set()
 
     if construction == "triangle":
         ego_edges_by_node = triangle_ego_net_edges(graph)
@@ -453,80 +589,135 @@ def ego_feature_scores(
     all_ego_clusters: list[set[str]] = []
     densities: list[float] = []
     conductances: list[float] = []
+    ego_items = [
+        (ego, ego_edges_by_node.get(ego, set()))
+        for ego in sorted_nodes
+        if ego_edges_by_node.get(ego, set())
+    ]
 
-    for ego in sorted_nodes:
-        ego_edges = ego_edges_by_node.get(ego, set())
-        if not ego_edges:
-            continue
-        ego_graph = csr_graph_from_edges(ego_edges)
-        if clusterer == "apm":
-            clusters = csr_apm_label_propagation(
-                ego_graph,
-                alpha=alpha,
-                beta=beta,
-                max_iter=max_iter,
-                seed=seed + node_offsets[ego],
-            )
-        elif clusterer == "cc":
-            clusters = csr_connected_components(ego_graph)
-        else:
-            raise ValueError(f"Unsupported ego-net clusterer: {clusterer}")
-
-        for cluster in clusters:
-            if len(cluster) < min_cluster_size:
-                continue
-            nodes = [ego_graph.nodes[idx] for idx in cluster]
-            cluster_set = set(nodes)
-            density, conductance, neighbors_in_cluster = _csr_cluster_profile(ego_graph, cluster)
-            all_ego_clusters.append(cluster_set)
-            densities.append(density)
-            conductances.append(conductance)
-
-            if candidate_index is None:
-                pairs = [
-                    (ego_graph.node_to_idx[source], ego_graph.node_to_idx[target], source, target)
-                    for source, target in itertools.combinations(nodes, 2)
-                    if (source, target) not in graph_edges
-                ]
-                if not pairs:
-                    continue
-                for source_idx, target_idx, source, target in pairs:
-                    if w1_table is not None:
-                        w1_table[(source, target)] += 1.0
-                    if w2_table is not None:
-                        w2_table[(source, target)] += density
-                    if w3_table is not None:
-                        w3_table[(source, target)] += len(
-                            neighbors_in_cluster[source_idx].intersection(neighbors_in_cluster[target_idx])
-                        )
-                    if w4_table is not None:
-                        w4_table[(source, target)] += (
-                            min(len(neighbors_in_cluster[source_idx]), len(neighbors_in_cluster[target_idx]))
-                            / len(cluster_set)
-                        )
-            else:
-                indexed_pairs = _cluster_candidate_pair_indices(
-                    nodes,
-                    cluster_set,
-                    candidate_index,
-                    ego_graph.node_to_idx,
-                )
-                if not indexed_pairs:
-                    continue
-                for pair_idx, source_idx, target_idx in indexed_pairs:
+    if ego_workers > 1 and candidate_index is not None and len(ego_items) > 1:
+        context = EgoWorkerContext(
+            clusterer=clusterer,
+            features=features,
+            candidate_index=candidate_index,
+            alpha=alpha,
+            beta=beta,
+            max_iter=max_iter,
+            min_cluster_size=min_cluster_size,
+        )
+        tasks = [(ego_edges, seed + node_offsets[ego]) for ego, ego_edges in ego_items]
+        executor_kwargs = {}
+        mp_context = _process_pool_context()
+        if mp_context is not None:
+            executor_kwargs["mp_context"] = mp_context
+        chunksize = max(1, len(tasks) // (ego_workers * 8))
+        with ProcessPoolExecutor(
+            max_workers=ego_workers,
+            initializer=_init_ego_worker,
+            initargs=(context,),
+            **executor_kwargs,
+        ) as executor:
+            for result in executor.map(_process_candidate_ego_task, tasks, chunksize=chunksize):
+                all_ego_clusters.extend(result.clusters)
+                densities.extend(result.densities)
+                conductances.extend(result.conductances)
+                for pair_idx, w1_score, w2_score, w3_score, w4_score in result.score_items:
                     if w1_array is not None:
-                        w1_array[pair_idx] += 1.0
+                        w1_array[pair_idx] += w1_score
                     if w2_array is not None:
-                        w2_array[pair_idx] += density
+                        w2_array[pair_idx] += w2_score
                     if w3_array is not None:
-                        w3_array[pair_idx] += len(
-                            neighbors_in_cluster[source_idx].intersection(neighbors_in_cluster[target_idx])
-                        )
+                        w3_array[pair_idx] += w3_score
                     if w4_array is not None:
-                        w4_array[pair_idx] += (
-                            min(len(neighbors_in_cluster[source_idx]), len(neighbors_in_cluster[target_idx]))
-                            / len(cluster_set)
+                        w4_array[pair_idx] += w4_score
+    else:
+        for ego, ego_edges in ego_items:
+            ego_graph = csr_graph_from_edges(ego_edges)
+            if clusterer == "apm":
+                clusters = csr_apm_label_propagation(
+                    ego_graph,
+                    alpha=alpha,
+                    beta=beta,
+                    max_iter=max_iter,
+                    seed=seed + node_offsets[ego],
+                )
+            elif clusterer == "cc":
+                clusters = csr_connected_components(ego_graph)
+            else:
+                raise ValueError(f"Unsupported ego-net clusterer: {clusterer}")
+
+            for cluster in clusters:
+                if len(cluster) < min_cluster_size:
+                    continue
+                cluster_idx_set = set(cluster)
+                nodes = [ego_graph.nodes[idx] for idx in cluster]
+                cluster_set = set(nodes)
+                if candidate_index is None:
+                    density, conductance, neighbors_in_cluster = _csr_cluster_profile(ego_graph, cluster)
+                    indexed_pairs: list[tuple[int, int, int]] = []
+                else:
+                    density, conductance = _csr_cluster_stats(ego_graph, cluster, cluster_idx_set)
+                    indexed_pairs = _cluster_candidate_pair_indices(
+                        nodes,
+                        cluster_set,
+                        candidate_index,
+                        ego_graph.node_to_idx,
+                    )
+                all_ego_clusters.append(cluster_set)
+                densities.append(density)
+                conductances.append(conductance)
+
+                if candidate_index is None:
+                    pairs = [
+                        (ego_graph.node_to_idx[source], ego_graph.node_to_idx[target], source, target)
+                        for source, target in itertools.combinations(nodes, 2)
+                        if (source, target) not in graph_edges
+                    ]
+                    if not pairs:
+                        continue
+                    for source_idx, target_idx, source, target in pairs:
+                        if w1_table is not None:
+                            w1_table[(source, target)] += 1.0
+                        if w2_table is not None:
+                            w2_table[(source, target)] += density
+                        if w3_table is not None:
+                            w3_table[(source, target)] += len(
+                                neighbors_in_cluster[source_idx].intersection(neighbors_in_cluster[target_idx])
+                            )
+                        if w4_table is not None:
+                            w4_table[(source, target)] += (
+                                min(len(neighbors_in_cluster[source_idx]), len(neighbors_in_cluster[target_idx]))
+                                / len(cluster_set)
+                            )
+                else:
+                    if not indexed_pairs:
+                        continue
+                    neighbors_in_cluster: dict[int, set[int]] = {}
+                    if w3_array is not None or w4_array is not None:
+                        endpoint_nodes = {
+                            endpoint
+                            for _, source_idx, target_idx in indexed_pairs
+                            for endpoint in (source_idx, target_idx)
+                        }
+                        neighbors_in_cluster = _csr_endpoint_neighbors_in_cluster(
+                            ego_graph,
+                            endpoint_nodes,
+                            cluster_idx_set,
                         )
+                    for pair_idx, source_idx, target_idx in indexed_pairs:
+                        if w1_array is not None:
+                            w1_array[pair_idx] += 1.0
+                        if w2_array is not None:
+                            w2_array[pair_idx] += density
+                        if w3_array is not None:
+                            w3_array[pair_idx] += len(
+                                neighbors_in_cluster[source_idx].intersection(neighbors_in_cluster[target_idx])
+                            )
+                        if w4_array is not None:
+                            w4_array[pair_idx] += (
+                                min(len(neighbors_in_cluster[source_idx]), len(neighbors_in_cluster[target_idx]))
+                                / len(cluster_set)
+                            )
 
     cluster_sizes = [len(cluster) for cluster in all_ego_clusters]
     stats = {

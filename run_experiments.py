@@ -89,6 +89,7 @@ def run_dataset_seed(
         "apm_seed": float(seed),
         "apm_seed_strategy": "base_seed_plus_sorted_ego_offset",
         "construction": args.construction,
+        "ego_workers": float(args.ego_workers),
         "test_ratio": float(args.test_ratio),
         "max_test_edges": float(args.max_test_edges),
         "nodes": float(graph.number_of_nodes()),
@@ -112,6 +113,7 @@ def run_dataset_seed(
             min_cluster_size=args.min_cluster_size,
             seed=seed,
             construction=args.construction,
+            ego_workers=args.ego_workers,
         )
         clusterer_name = clusterer.upper()
         for feature in args.features:
@@ -192,6 +194,7 @@ def write_results(rows: list[dict[str, float | str]], output: pathlib.Path) -> N
         "apm_seed",
         "apm_seed_strategy",
         "construction",
+        "ego_workers",
         "test_ratio",
         "max_test_edges",
         "nodes",
@@ -228,7 +231,7 @@ def write_results(rows: list[dict[str, float | str]], output: pathlib.Path) -> N
         "circle_f1",
     ]
     with output.open("w", newline="", encoding="utf-8") as fp:
-        writer = csv.DictWriter(fp, fieldnames=fieldnames)
+        writer = csv.DictWriter(fp, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -247,7 +250,7 @@ def write_topk(rows: list[dict[str, float | str]], output: pathlib.Path) -> None
         "recall",
     ]
     with output.open("w", newline="", encoding="utf-8") as fp:
-        writer = csv.DictWriter(fp, fieldnames=fieldnames)
+        writer = csv.DictWriter(fp, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -291,7 +294,7 @@ def write_topk_summary(rows: list[dict[str, float | str]], output: pathlib.Path)
     output.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = ["dataset", "algorithm", "clusterer", "feature", "k", "metric", "seeds", "n", "mean", "std"]
     with output.open("w", newline="", encoding="utf-8") as fp:
-        writer = csv.DictWriter(fp, fieldnames=fieldnames)
+        writer = csv.DictWriter(fp, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -363,7 +366,7 @@ def write_summary(rows: list[dict[str, float | str]], output: pathlib.Path) -> N
     output.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = ["dataset", "algorithm", "clusterer", "feature", "metric", "seeds", "n", "mean", "std"]
     with output.open("w", newline="", encoding="utf-8") as fp:
-        writer = csv.DictWriter(fp, fieldnames=fieldnames)
+        writer = csv.DictWriter(fp, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -440,6 +443,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-cluster-size", type=int, default=2)
     parser.add_argument("--min-score", type=float, default=1.0)
     parser.add_argument("--construction", choices=["triangle", "neighbor"], default="triangle")
+    parser.add_argument("--ego-workers", type=int, default=1)
     parser.add_argument("--clusterers", nargs="+", choices=["apm", "cc"], default=["apm", "cc"])
     parser.add_argument("--features", nargs="+", choices=["W1", "W2", "W3", "W4"], default=["W1", "W2", "W3", "W4"])
     parser.add_argument("--top-k", nargs="+", type=int, default=[10, 20, 50, 100, 200, 500, 1000])
