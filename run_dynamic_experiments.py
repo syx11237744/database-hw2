@@ -67,6 +67,8 @@ def full_egonet_partition(graph: nx.Graph, args: argparse.Namespace) -> list[set
         max_iter=args.max_iter,
         min_score=args.min_score,
         seed=args.seed,
+        clusterer=args.clusterer,
+        reuse_labels=args.reuse_labels,
     )
     miner.initialize()
     return miner.partition()
@@ -87,6 +89,8 @@ def run_dataset(name: str, args: argparse.Namespace) -> list[dict[str, float | s
         max_iter=args.max_iter,
         min_score=args.min_score,
         seed=args.seed,
+        clusterer=args.clusterer,
+        reuse_labels=args.reuse_labels,
     )
     init_time = miner.initialize()
     print(f"{name}: initialized dynamic miner in {init_time:.3f}s")
@@ -111,6 +115,8 @@ def run_dataset(name: str, args: argparse.Namespace) -> list[dict[str, float | s
             "edges": float(miner.graph.number_of_edges()),
             "events": float(len(events)),
             "affected_egos": update_stats["affected_egos"],
+            "ego_edge_updates": update_stats["ego_edge_updates"],
+            "score_delta_pairs": update_stats["score_delta_pairs"],
             "init_runtime_sec": init_time if batch_id == 1 else 0.0,
             "dynamic_update_sec": update_stats["runtime_sec"],
             "full_egonet_sec": full_runtime,
@@ -145,6 +151,8 @@ def write_results(rows: list[dict[str, float | str]], output: pathlib.Path) -> N
         "edges",
         "events",
         "affected_egos",
+        "ego_edge_updates",
+        "score_delta_pairs",
         "init_runtime_sec",
         "dynamic_update_sec",
         "full_egonet_sec",
@@ -162,29 +170,32 @@ def write_results(rows: list[dict[str, float | str]], output: pathlib.Path) -> N
         "score_edges",
     ]
     with output.open("w", newline="", encoding="utf-8") as fp:
-        writer = csv.DictWriter(fp, fieldnames=fieldnames)
+        writer = csv.DictWriter(fp, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
 
 def print_summary(rows: list[dict[str, float | str]]) -> None:
     print("\nDynamic experiment summary")
-    print("=" * 104)
+    print("=" * 126)
     print(
         f"{'dataset':<10} {'batch':>5} {'events':>7} {'affected':>9} "
-        f"{'dyn(s)':>9} {'full(s)':>9} {'speedup':>8} {'dyn_mod':>9} {'full_mod':>9}"
+        f"{'ego_edges':>9} {'score_delta':>11} {'dyn(s)':>9} {'full(s)':>9} "
+        f"{'speedup':>8} {'dyn_mod':>9} {'full_mod':>9}"
     )
     for row in rows:
         print(
             f"{row['dataset']:<10} {int(float(row['batch'])):>5} "
             f"{int(float(row['events'])):>7} {int(float(row['affected_egos'])):>9} "
+            f"{int(float(row['ego_edge_updates'])):>9} "
+            f"{int(float(row['score_delta_pairs'])):>11} "
             f"{float(row['dynamic_update_sec']):>9.4f} "
             f"{float(row['full_egonet_sec']):>9.4f} "
             f"{float(row['speedup_vs_full']):>8.2f} "
             f"{float(row['dynamic_modularity']):>9.4f} "
             f"{float(row['full_modularity']):>9.4f}"
         )
-    print("=" * 104)
+    print("=" * 126)
     print(f"mean dynamic update: {statistics.mean(float(r['dynamic_update_sec']) for r in rows):.4f}s")
     print(f"mean full recompute: {statistics.mean(float(r['full_egonet_sec']) for r in rows):.4f}s")
     print(f"mean speedup:        {statistics.mean(float(r['speedup_vs_full']) for r in rows):.2f}x")
@@ -201,6 +212,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--beta", type=float, default=0.01)
     parser.add_argument("--max-iter", type=int, default=10)
     parser.add_argument("--min-score", type=float, default=1.0)
+    parser.add_argument("--clusterer", choices=["apm", "cc"], default="apm")
+    parser.add_argument("--reuse-labels", action=argparse.BooleanOptionalAction, default=True)
     return parser.parse_args()
 
 

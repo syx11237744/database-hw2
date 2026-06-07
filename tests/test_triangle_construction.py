@@ -86,7 +86,7 @@ class TriangleConstructionTest(unittest.TestCase):
             sorted(sorted(cluster) for cluster in neighbor_clusters),
         )
 
-    def test_dynamic_update_matches_fresh_rebuild(self) -> None:
+    def test_dynamic_triangle_index_tracks_edge_events(self) -> None:
         graph = nx.Graph()
         graph.add_edges_from(
             [
@@ -103,9 +103,36 @@ class TriangleConstructionTest(unittest.TestCase):
 
         miner = DynamicEgoNetMiner(graph, seed=11)
         miner.initialize()
+        self.assertEqual(
+            {ego: edges for ego, edges in miner.ego_edges_by_node.items() if edges},
+            naive_ego_edges(miner.graph),
+        )
+        miner.apply_events([("add", "u", "v"), ("remove", "a", "b")])
+        self.assertEqual(
+            {ego: edges for ego, edges in miner.ego_edges_by_node.items() if edges},
+            naive_ego_edges(miner.graph),
+        )
+
+    def test_dynamic_update_matches_fresh_rebuild_without_label_reuse(self) -> None:
+        graph = nx.Graph()
+        graph.add_edges_from(
+            [
+                ("u", "a"),
+                ("u", "b"),
+                ("u", "c"),
+                ("a", "b"),
+                ("b", "c"),
+                ("v", "a"),
+                ("v", "b"),
+                ("v", "c"),
+            ]
+        )
+
+        miner = DynamicEgoNetMiner(graph, seed=11, reuse_labels=False)
+        miner.initialize()
         miner.apply_events([("add", "u", "v"), ("remove", "a", "b")])
 
-        fresh = DynamicEgoNetMiner(miner.graph, seed=11)
+        fresh = DynamicEgoNetMiner(miner.graph, seed=11, reuse_labels=False)
         fresh.initialize()
 
         self.assertEqual(dict(miner.scores), dict(fresh.scores))

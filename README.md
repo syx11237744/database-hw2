@@ -70,7 +70,7 @@ where `C_u(label)` is the number of neighbors of `u` currently carrying `label`,
 
 ## Optional Dynamic Extension
 
-The optional extension maintains ego-net scores under edge insertions and deletions. When edge `(u,v)` changes, only the ego-nets of `u`, `v`, and their common neighbors can change. The implementation removes the old score contributions of these affected ego-nets, applies the edge updates, recomputes only those ego-nets, and then rebuilds communities from the maintained score graph.
+The optional extension maintains ego-net scores under edge insertions and deletions. When edge `(u,v)` changes, only the ego-nets of `u`, `v`, and their common neighbors can change. The implementation maintains a triangle-derived ego-edge index, updates only the ego-edges created or removed by changed triangles, recomputes affected ego-nets with CSR local graphs, applies local score deltas, and can reuse the previous APM labels as a warm start. Communities are then rebuilt from the maintained score graph.
 
 Run:
 

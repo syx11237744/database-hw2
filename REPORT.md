@@ -167,19 +167,19 @@ The optional part considers evolving graphs with edge insertions and deletions. 
 - `Z_v`, because `u` may enter or leave the neighbor set of `v`.
 - `Z_x` for each common neighbor `x` of `u` and `v`, because the edge `(u,v)` may appear or disappear inside `x`'s ego-net.
 
-Therefore, the dynamic algorithm maintains a score contribution table for every ego node. For each update batch, it removes old contributions for affected ego-nets, applies the edge insertions/deletions, recomputes only affected ego-nets, and updates the global pair-score table. Communities are then extracted from the maintained score graph, using the same `min_score` threshold as the static experiment.
+Therefore, the dynamic algorithm maintains both a triangle-derived ego-edge index and a score contribution table for every ego node. For an edge insertion or deletion, it computes the current common-neighbor set, updates only the three ego-edge entries induced by each changed triangle, recomputes affected ego-nets with CSR local graphs, and applies the local score delta against the previous contribution. APM can reuse the previous ego labels as a warm start; running with `--no-reuse-labels` keeps the exact fresh-rebuild semantics for validation. Communities are then extracted from the maintained score graph, using the same `min_score` threshold as the static experiment.
 
 The dynamic experiment simulates two batches per dataset. Each batch contains 25 inserted edges and 25 deleted edges. The full rebuild baseline reconstructs all ego-net scores from scratch using the same dynamic miner, so the comparison is methodologically consistent.
 
-| Dataset | Batch | Events | Affected Ego-nets | Dynamic Update (s) | Full Rebuild (s) | Speedup | Dynamic Modularity | Full Modularity |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Facebook | 1 | 50 | 923 | 15.3857 | 20.9826 | 1.36x | 0.0009 | 0.0009 |
-| Facebook | 2 | 50 | 1067 | 17.2129 | 21.2199 | 1.23x | 0.0009 | 0.0009 |
-| Enron | 1 | 50 | 435 | 4.7207 | 24.0876 | 5.10x | 0.0568 | 0.0568 |
-| Enron | 2 | 50 | 578 | 7.6395 | 24.8108 | 3.25x | 0.0569 | 0.0569 |
-| AstroPh | 1 | 50 | 1052 | 6.0394 | 22.7659 | 3.77x | 0.0401 | 0.0401 |
-| AstroPh | 2 | 50 | 1168 | 6.5260 | 22.9610 | 3.52x | 0.0402 | 0.0402 |
+| Dataset | Batch | Events | Affected Ego-nets | Ego-edge Updates | Score Delta Pairs | Dynamic Update (s) | Full Rebuild (s) | Speedup | Dynamic Modularity | Full Modularity |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Facebook | 1 | 50 | 923 | 6909 | 9915 | 1.9043 | 6.2064 | 3.26x | 0.0009 | 0.0009 |
+| Facebook | 2 | 50 | 1067 | 8829 | 9234 | 2.1806 | 6.4991 | 2.98x | 0.0009 | 0.0009 |
+| Enron | 1 | 50 | 435 | 1227 | 29380 | 0.8627 | 7.1300 | 8.26x | 0.0556 | 0.0556 |
+| Enron | 2 | 50 | 578 | 1875 | 36919 | 1.3844 | 6.8966 | 4.98x | 0.0556 | 0.0557 |
+| AstroPh | 1 | 50 | 1052 | 3495 | 6356 | 0.7193 | 7.1493 | 9.94x | 0.0402 | 0.0403 |
+| AstroPh | 2 | 50 | 1168 | 3567 | 5582 | 0.7751 | 6.5656 | 8.47x | 0.0400 | 0.0400 |
 
-The average dynamic update time is 9.5874 seconds, while the average full rebuild time is 22.8046 seconds. The average speedup is 3.04x. The dynamic and full modularity values match to four decimal places, indicating that the localized update rule preserves the same community quality as full recomputation while reducing runtime.
+The average dynamic update time is 1.3044 seconds, while the average full rebuild time is 6.7412 seconds. The average speedup is 6.32x. With label reuse enabled, the dynamic and full modularity values remain close but are not forced to be identical, because warm-started APM may converge to a slightly different local labeling. The test suite separately validates exact score equivalence against fresh rebuild when label reuse is disabled.
 
-Facebook has the smallest speedup because affected edges often touch high-degree nodes and many common neighbors, so the affected ego-net set is large. Enron obtains the largest speedup because each batch affects fewer ego-nets. This confirms the main intuition: dynamic ego-net maintenance is most beneficial when graph updates are local relative to the total graph size.
+Facebook has the smallest speedup because affected edges often touch high-degree nodes and many common neighbors, so the affected ego-net and ego-edge update sets are large. AstroPh and Enron obtain larger speedups because the update batches touch fewer expensive ego-net score deltas relative to the full graph. This confirms the main intuition: dynamic ego-net maintenance is most beneficial when graph updates are local relative to the total graph size.
