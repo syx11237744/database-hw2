@@ -9,7 +9,7 @@ import networkx as nx
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from egonet_mining.algorithms import ego_friendship_scores, triangle_ego_net_edges
+from egonet_mining.algorithms import ego_feature_scores, ego_friendship_scores, triangle_ego_net_edges
 from egonet_mining.dynamic import DynamicEgoNetMiner
 
 
@@ -105,6 +105,33 @@ class TriangleConstructionTest(unittest.TestCase):
             sorted(sorted(cluster) for cluster in miner.partition()),
             sorted(sorted(cluster) for cluster in fresh.partition()),
         )
+
+    def test_cc_clusterer_scores_paper_w1_to_w4_inside_ego_nets(self) -> None:
+        graph = nx.Graph()
+        graph.add_edges_from(
+            [
+                ("u", "a"),
+                ("u", "b"),
+                ("u", "c"),
+                ("u", "d"),
+                ("a", "c"),
+                ("b", "c"),
+                ("b", "d"),
+            ]
+        )
+
+        result = ego_feature_scores(
+            graph,
+            clusterer="cc",
+            candidate_pairs=[("a", "b")],
+            construction="triangle",
+        )
+
+        pair = ("a", "b")
+        self.assertEqual(result.scores["W1"][pair], 2.0)
+        self.assertAlmostEqual(result.scores["W2"][pair], 0.5 + 2 / 3)
+        self.assertEqual(result.scores["W3"][pair], 2.0)
+        self.assertAlmostEqual(result.scores["W4"][pair], 1 / 4 + 1 / 3)
 
 
 if __name__ == "__main__":

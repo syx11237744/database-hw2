@@ -13,11 +13,10 @@ Epasto, Lattanzi, Mirrokni, Sebe, Taei, and Verma, "Ego-net Community Mining App
   ego-network construction algorithm.
 - Optional local PySpark MapReduce-style ego-net construction that mirrors the
   paper's partition-triple shuffle at a small local scale.
-- Absolute-Potts-style label propagation used inside each ego-net.
-- Ego-network friendship score `W(v,w)`, counting how many ego-net communities contain both nodes.
-- Aggregated EgoNet-APM communities from the score graph.
+- Absolute-Potts-style label propagation and connected-components baselines used inside each ego-net.
+- Paper-aligned ego-network friendship features `W1` to `W4`.
 - Louvain baseline on the same train graph.
-- Metrics: runtime, modularity, coverage, mean density, mean conductance, link-prediction AUC, and average precision.
+- Metrics: runtime, local ego-cluster density/conductance, link-prediction AUC, average precision, and Louvain global partition metrics.
 
 ## Datasets
 

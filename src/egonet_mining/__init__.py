@@ -2,6 +2,8 @@
 
 from .algorithms import (
     apm_label_propagation,
+    ego_connected_components,
+    ego_feature_scores,
     ego_friendship_scores,
     ego_graph_from_edges,
     ego_net_edges_for_node,
@@ -16,6 +18,8 @@ from .evaluation import evaluate_link_prediction, evaluate_partition
 __all__ = [
     "apm_label_propagation",
     "DynamicEgoNetMiner",
+    "ego_connected_components",
+    "ego_feature_scores",
     "ego_friendship_scores",
     "ego_graph_from_edges",
     "ego_net_edges_for_node",

@@ -5,6 +5,7 @@ import heapq
 import math
 import random
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 from collections.abc import Mapping
 
 import networkx as nx
@@ -13,6 +14,17 @@ from .metrics import mean_density
 
 
 EgoEdges = dict[str, set[tuple[str, str]]]
+EgoFeatureScores = dict[str, dict[tuple[str, str], float]]
+EGO_FEATURES = ("W1", "W2", "W3", "W4")
+
+
+@dataclass(frozen=True)
+class EgoFeatureResult:
+    """Paper-aligned ego-net friend-suggestion features."""
+
+    scores: EgoFeatureScores
+    clusters: list[set[str]]
+    stats: dict[str, float]
 
 
 def _sorted_pair(source: str, target: str) -> tuple[str, str]:
@@ -140,21 +152,79 @@ def ego_graph_from_edges(edges: set[tuple[str, str]]) -> nx.Graph:
     return ego_graph
 
 
-def ego_friendship_scores(
+def ego_connected_components(graph: nx.Graph) -> list[set[str]]:
+    """Connected-components baseline inside one ego-net Z_u."""
+    return [set(component) for component in nx.connected_components(graph)]
+
+
+def _cluster_density(graph: nx.Graph, cluster: set[str]) -> float:
+    if len(cluster) < 2:
+        return 0.0
+    possible = len(cluster) * (len(cluster) - 1) / 2
+    return graph.subgraph(cluster).number_of_edges() / possible if possible else 0.0
+
+
+def _cluster_conductance(graph: nx.Graph, cluster: set[str]) -> float:
+    if not cluster or len(cluster) == graph.number_of_nodes():
+        return 0.0
+    cut_edges = nx.cut_size(graph, cluster)
+    volume = sum(dict(graph.degree(cluster)).values())
+    return cut_edges / volume if volume else 0.0
+
+
+def _candidate_index(
+    candidate_pairs: list[tuple[str, str]] | None,
+) -> tuple[set[tuple[str, str]] | None, dict[str, set[str]]]:
+    if candidate_pairs is None:
+        return None, {}
+    normalized = {_sorted_pair(source, target) for source, target in candidate_pairs}
+    by_node: dict[str, set[str]] = defaultdict(set)
+    for source, target in normalized:
+        by_node[source].add(target)
+        by_node[target].add(source)
+    return normalized, by_node
+
+
+def _cluster_candidate_pairs(
+    nodes: list[str],
+    cluster_set: set[str],
+    candidate_by_node: dict[str, set[str]],
+) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
+    for source in nodes:
+        for target in candidate_by_node.get(source, set()).intersection(cluster_set):
+            if source < target:
+                pairs.append((source, target))
+    return pairs
+
+
+def ego_feature_scores(
     graph: nx.Graph,
     *,
+    clusterer: str = "apm",
+    features: tuple[str, ...] = EGO_FEATURES,
+    candidate_pairs: list[tuple[str, str]] | None = None,
     alpha: float = 0.3,
     beta: float = 0.01,
     max_iter: int = 20,
     min_cluster_size: int = 2,
     seed: int = 42,
     construction: str = "triangle",
-) -> tuple[dict[tuple[str, str], float], list[set[str]]]:
-    """Compute W(v,w): number of ego-net communities containing v and w."""
-    scores: dict[tuple[str, str], float] = defaultdict(float)
-    all_ego_clusters: list[set[str]] = []
+) -> EgoFeatureResult:
+    """Compute paper W1-W4 ego-network friendship features.
+
+    W1 counts co-clustering in ego-net communities. W2 weights W1 by local
+    cluster density. W3 counts common neighbors inside the cluster. W4 weights
+    by the smaller endpoint degree inside the cluster divided by cluster size.
+    """
+    unsupported = set(features) - set(EGO_FEATURES)
+    if unsupported:
+        raise ValueError(f"Unsupported ego-net features: {sorted(unsupported)}")
+
     sorted_nodes = sorted(graph.nodes())
     node_offsets = {node: offset for offset, node in enumerate(sorted_nodes)}
+    graph_edges = {_sorted_pair(source, target) for source, target in graph.edges()}
+    candidate_set, candidate_by_node = _candidate_index(candidate_pairs)
 
     if construction == "triangle":
         ego_edges_by_node = triangle_ego_net_edges(graph)
@@ -166,26 +236,106 @@ def ego_friendship_scores(
     else:
         raise ValueError(f"Unsupported ego-net construction mode: {construction}")
 
+    score_tables: EgoFeatureScores = {feature: defaultdict(float) for feature in features}
+    all_ego_clusters: list[set[str]] = []
+    densities: list[float] = []
+    conductances: list[float] = []
+
     for ego in sorted_nodes:
         ego_edges = ego_edges_by_node.get(ego, set())
         if not ego_edges:
             continue
         ego_graph = ego_graph_from_edges(ego_edges)
-        clusters = apm_label_propagation(
-            ego_graph,
-            alpha=alpha,
-            beta=beta,
-            max_iter=max_iter,
-            seed=seed + node_offsets[ego],
-        )
+        if clusterer == "apm":
+            clusters = apm_label_propagation(
+                ego_graph,
+                alpha=alpha,
+                beta=beta,
+                max_iter=max_iter,
+                seed=seed + node_offsets[ego],
+            )
+        elif clusterer == "cc":
+            clusters = ego_connected_components(ego_graph)
+        else:
+            raise ValueError(f"Unsupported ego-net clusterer: {clusterer}")
+
         for cluster in clusters:
             if len(cluster) < min_cluster_size:
                 continue
-            all_ego_clusters.append(cluster)
-            for source, target in itertools.combinations(sorted(cluster), 2):
-                if not graph.has_edge(source, target):
-                    scores[(source, target)] += 1.0
-    return dict(scores), all_ego_clusters
+            cluster_set = set(cluster)
+            nodes = sorted(cluster_set)
+            density = _cluster_density(ego_graph, cluster_set)
+            conductance = _cluster_conductance(ego_graph, cluster_set)
+            all_ego_clusters.append(cluster_set)
+            densities.append(density)
+            conductances.append(conductance)
+
+            if candidate_set is None:
+                pairs = [
+                    pair
+                    for pair in itertools.combinations(nodes, 2)
+                    if pair not in graph_edges
+                ]
+            else:
+                pairs = _cluster_candidate_pairs(nodes, cluster_set, candidate_by_node)
+            if not pairs:
+                continue
+
+            neighbors_in_cluster = {
+                node: set(ego_graph.neighbors(node)).intersection(cluster_set)
+                for node in nodes
+            }
+            for source, target in pairs:
+                if "W1" in score_tables:
+                    score_tables["W1"][(source, target)] += 1.0
+                if "W2" in score_tables:
+                    score_tables["W2"][(source, target)] += density
+                if "W3" in score_tables:
+                    score_tables["W3"][(source, target)] += len(
+                        neighbors_in_cluster[source].intersection(neighbors_in_cluster[target])
+                    )
+                if "W4" in score_tables:
+                    score_tables["W4"][(source, target)] += (
+                        min(len(neighbors_in_cluster[source]), len(neighbors_in_cluster[target]))
+                        / len(cluster_set)
+                    )
+
+    cluster_sizes = [len(cluster) for cluster in all_ego_clusters]
+    return EgoFeatureResult(
+        scores={feature: dict(scores) for feature, scores in score_tables.items()},
+        clusters=all_ego_clusters,
+        stats={
+            "ego_cluster_count": float(len(all_ego_clusters)),
+            "ego_cluster_mean_size": sum(cluster_sizes) / len(cluster_sizes) if cluster_sizes else 0.0,
+            "ego_cluster_mean_density": sum(densities) / len(densities) if densities else 0.0,
+            "ego_cluster_mean_conductance": sum(conductances) / len(conductances) if conductances else 0.0,
+        },
+    )
+
+
+def ego_friendship_scores(
+    graph: nx.Graph,
+    *,
+    alpha: float = 0.3,
+    beta: float = 0.01,
+    max_iter: int = 20,
+    min_cluster_size: int = 2,
+    seed: int = 42,
+    construction: str = "triangle",
+) -> tuple[dict[tuple[str, str], float], list[set[str]]]:
+    """Backward-compatible wrapper for the paper's W1 feature using APM."""
+    result = ego_feature_scores(
+        graph,
+        clusterer="apm",
+        features=("W1",),
+        alpha=alpha,
+        beta=beta,
+        max_iter=max_iter,
+        min_cluster_size=min_cluster_size,
+        seed=seed,
+        construction=construction,
+    )
+    return result.scores["W1"], result.clusters
 
 
 def ego_score_partition(
@@ -194,7 +344,13 @@ def ego_score_partition(
     *,
     min_score: float = 1.0,
 ) -> list[set[str]]:
-    """Aggregate ego-net pair scores into communities via score graph components."""
+    """Legacy global score-graph component heuristic.
+
+    This is not the connected-components baseline from Epasto et al.; the paper
+    uses connected components inside each ego-net Z_u before computing friend
+    suggestion scores. New experiments should use ``ego_feature_scores`` with
+    ``clusterer="cc"`` for that paper-aligned baseline.
+    """
     score_graph = nx.Graph()
     score_graph.add_nodes_from(graph.nodes())
     for (source, target), score in scores.items():
