@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import pathlib
+import statistics
 
 import matplotlib.pyplot as plt
 
@@ -49,7 +50,11 @@ def main() -> None:
         xs = range(len(datasets))
         for offset, algorithm in enumerate(algorithms):
             values = [
-                float(next(row[metric] for row in rows if row["dataset"] == dataset and row["algorithm"] == algorithm))
+                statistics.mean(
+                    float(row[metric])
+                    for row in rows
+                    if row["dataset"] == dataset and row["algorithm"] == algorithm and row[metric] != ""
+                )
                 for dataset in datasets
             ]
             shifted = [x + (offset - (len(algorithms) - 1) / 2) * width for x in xs]

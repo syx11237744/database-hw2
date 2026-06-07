@@ -172,6 +172,31 @@ def _cluster_conductance(graph: nx.Graph, cluster: set[str]) -> float:
     return cut_edges / volume if volume else 0.0
 
 
+def _quantile(values: list[float], probability: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = probability * (len(ordered) - 1)
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return ordered[lower]
+    weight = position - lower
+    return ordered[lower] * (1 - weight) + ordered[upper] * weight
+
+
+def _quantile_stats(prefix: str, values: list[float]) -> dict[str, float]:
+    return {
+        f"{prefix}_p10": _quantile(values, 0.10),
+        f"{prefix}_p25": _quantile(values, 0.25),
+        f"{prefix}_p50": _quantile(values, 0.50),
+        f"{prefix}_p75": _quantile(values, 0.75),
+        f"{prefix}_p90": _quantile(values, 0.90),
+    }
+
+
 def _candidate_index(
     candidate_pairs: list[tuple[str, str]] | None,
 ) -> tuple[set[tuple[str, str]] | None, dict[str, set[str]]]:
@@ -301,15 +326,18 @@ def ego_feature_scores(
                     )
 
     cluster_sizes = [len(cluster) for cluster in all_ego_clusters]
+    stats = {
+        "ego_cluster_count": float(len(all_ego_clusters)),
+        "ego_cluster_mean_size": sum(cluster_sizes) / len(cluster_sizes) if cluster_sizes else 0.0,
+        "ego_cluster_mean_density": sum(densities) / len(densities) if densities else 0.0,
+        "ego_cluster_mean_conductance": sum(conductances) / len(conductances) if conductances else 0.0,
+    }
+    stats.update(_quantile_stats("ego_cluster_density", densities))
+    stats.update(_quantile_stats("ego_cluster_conductance", conductances))
     return EgoFeatureResult(
         scores={feature: dict(scores) for feature, scores in score_tables.items()},
         clusters=all_ego_clusters,
-        stats={
-            "ego_cluster_count": float(len(all_ego_clusters)),
-            "ego_cluster_mean_size": sum(cluster_sizes) / len(cluster_sizes) if cluster_sizes else 0.0,
-            "ego_cluster_mean_density": sum(densities) / len(densities) if densities else 0.0,
-            "ego_cluster_mean_conductance": sum(conductances) / len(conductances) if conductances else 0.0,
-        },
+        stats=stats,
     )
 
 

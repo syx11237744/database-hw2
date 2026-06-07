@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 import networkx as nx
 
 from .algorithms import (
+    EGO_FEATURES,
     apm_label_propagation,
     ego_graph_from_edges,
     triangle_ego_net_edges,
@@ -25,7 +26,7 @@ PartitionTriple = tuple[int, int, int]
 
 @dataclass(frozen=True)
 class SparkEgoNetResult:
-    scores: dict[Edge, float]
+    scores: dict[str, dict[Edge, float]]
     ego_clusters: list[set[str]]
     stats: dict[str, float]
 
@@ -74,11 +75,53 @@ def _construct_ego_edges_for_partition(item: tuple[PartitionTriple, Any]) -> lis
     ]
 
 
-def _cluster_ego_edges(item: tuple[str, Any], params: dict[str, Any]) -> tuple[list[tuple[Edge, float]], list[set[str]]]:
+def _cluster_density(graph: nx.Graph, cluster: set[str]) -> float:
+    if len(cluster) < 2:
+        return 0.0
+    possible = len(cluster) * (len(cluster) - 1) / 2
+    return graph.subgraph(cluster).number_of_edges() / possible if possible else 0.0
+
+
+def _cluster_conductance(graph: nx.Graph, cluster: set[str]) -> float:
+    if not cluster or len(cluster) == graph.number_of_nodes():
+        return 0.0
+    cut_edges = nx.cut_size(graph, cluster)
+    volume = sum(dict(graph.degree(cluster)).values())
+    return cut_edges / volume if volume else 0.0
+
+
+def _candidate_index(candidate_pairs: list[Edge]) -> dict[str, set[str]]:
+    by_node: dict[str, set[str]] = defaultdict(set)
+    for source, target in candidate_pairs:
+        by_node[source].add(target)
+        by_node[target].add(source)
+    return by_node
+
+
+def _cluster_candidate_pairs(
+    nodes: list[str],
+    cluster_set: set[str],
+    candidate_by_node: dict[str, set[str]],
+) -> list[Edge]:
+    pairs: list[Edge] = []
+    for source in nodes:
+        for target in candidate_by_node.get(source, set()).intersection(cluster_set):
+            if source < target:
+                pairs.append((source, target))
+    return pairs
+
+
+def _cluster_ego_edges(item: tuple[str, Any], params: dict[str, Any]) -> dict[str, Any]:
     ego, edge_values = item
     edges = set(edge_values)
     if not edges:
-        return [], []
+        return {
+            "scores": {feature: [] for feature in params["features"]},
+            "clusters": [],
+            "densities": [],
+            "conductances": [],
+            "cluster_sizes": [],
+        }
 
     ego_graph = ego_graph_from_edges(edges)
     clusters = apm_label_propagation(
@@ -89,19 +132,58 @@ def _cluster_ego_edges(item: tuple[str, Any], params: dict[str, Any]) -> tuple[l
         seed=params["seed"] + params["node_offsets"][ego],
     )
 
-    edge_set: set[Edge] = params["edge_set"]
     min_cluster_size = params["min_cluster_size"]
-    score_items: list[tuple[Edge, float]] = []
+    candidate_by_node: dict[str, set[str]] = params["candidate_by_node"]
+    features: tuple[str, ...] = tuple(params["features"])
+    score_items: dict[str, list[tuple[Edge, float]]] = {feature: [] for feature in features}
     kept_clusters: list[set[str]] = []
+    densities: list[float] = []
+    conductances: list[float] = []
+    cluster_sizes: list[int] = []
+
     for cluster in clusters:
         if len(cluster) < min_cluster_size:
             continue
-        kept_clusters.append(cluster)
-        for source, target in itertools.combinations(sorted(cluster), 2):
-            pair = _normalize_edge(source, target)
-            if pair not in edge_set:
-                score_items.append((pair, 1.0))
-    return score_items, kept_clusters
+        cluster_set = set(cluster)
+        nodes = sorted(cluster_set)
+        pairs = _cluster_candidate_pairs(nodes, cluster_set, candidate_by_node)
+        density = _cluster_density(ego_graph, cluster_set)
+        conductance = _cluster_conductance(ego_graph, cluster_set)
+        kept_clusters.append(cluster_set)
+        densities.append(density)
+        conductances.append(conductance)
+        cluster_sizes.append(len(cluster_set))
+        if not pairs:
+            continue
+
+        neighbors_in_cluster = {
+            node: set(ego_graph.neighbors(node)).intersection(cluster_set)
+            for node in nodes
+        }
+        for source, target in pairs:
+            if "W1" in score_items:
+                score_items["W1"].append(((source, target), 1.0))
+            if "W2" in score_items:
+                score_items["W2"].append(((source, target), density))
+            if "W3" in score_items:
+                score_items["W3"].append(
+                    ((source, target), float(len(neighbors_in_cluster[source].intersection(neighbors_in_cluster[target]))))
+                )
+            if "W4" in score_items:
+                score_items["W4"].append(
+                    (
+                        (source, target),
+                        min(len(neighbors_in_cluster[source]), len(neighbors_in_cluster[target])) / len(cluster_set),
+                    )
+                )
+
+    return {
+        "scores": score_items,
+        "clusters": kept_clusters,
+        "densities": densities,
+        "conductances": conductances,
+        "cluster_sizes": cluster_sizes,
+    }
 
 
 def spark_ego_friendship_scores(
@@ -113,10 +195,16 @@ def spark_ego_friendship_scores(
     beta: float = 0.01,
     max_iter: int = 20,
     min_cluster_size: int = 2,
+    features: tuple[str, ...] = EGO_FEATURES,
+    candidate_pairs: list[Edge] | None = None,
     seed: int = 42,
     rdd_partitions: int | None = None,
 ) -> SparkEgoNetResult:
     """Compute ego friendship scores through local PySpark MapReduce stages."""
+    unsupported = set(features) - set(EGO_FEATURES)
+    if unsupported:
+        raise ValueError(f"Unsupported ego-net features: {sorted(unsupported)}")
+
     start = time.perf_counter()
     edges = [_normalize_edge(source, target) for source, target in graph.edges()]
     sorted_nodes = sorted(graph.nodes())
@@ -149,7 +237,10 @@ def spark_ego_friendship_scores(
         "min_cluster_size": min_cluster_size,
         "seed": seed,
         "node_offsets": node_offsets,
-        "edge_set": set(edges),
+        "features": features,
+        "candidate_by_node": _candidate_index(
+            [_normalize_edge(source, target) for source, target in candidate_pairs or []]
+        ),
     })
     clustered = (
         ego_edge_rdd
@@ -158,9 +249,19 @@ def spark_ego_friendship_scores(
         .cache()
     )
 
-    score_items = clustered.flatMap(lambda result: result[0])
-    scores = dict(score_items.reduceByKey(lambda left, right: left + right).collect())
-    ego_clusters = clustered.flatMap(lambda result: result[1]).collect()
+    scores = {
+        feature: dict(
+            clustered
+            .flatMap(lambda result, feature=feature: result["scores"][feature])
+            .reduceByKey(lambda left, right: left + right)
+            .collect()
+        )
+        for feature in features
+    }
+    ego_clusters = clustered.flatMap(lambda result: result["clusters"]).collect()
+    cluster_sizes = clustered.flatMap(lambda result: result["cluster_sizes"]).collect()
+    densities = clustered.flatMap(lambda result: result["densities"]).collect()
+    conductances = clustered.flatMap(lambda result: result["conductances"]).collect()
 
     return SparkEgoNetResult(
         scores=scores,
@@ -173,5 +274,9 @@ def spark_ego_friendship_scores(
             "spark_ego_edges": float(ego_edges),
             "spark_ego_count": float(ego_count),
             "spark_runtime_sec": time.perf_counter() - start,
+            "ego_cluster_count": float(len(cluster_sizes)),
+            "ego_cluster_mean_size": float(sum(cluster_sizes) / len(cluster_sizes)) if cluster_sizes else 0.0,
+            "ego_cluster_mean_density": float(sum(densities) / len(densities)) if densities else 0.0,
+            "ego_cluster_mean_conductance": float(sum(conductances) / len(conductances)) if conductances else 0.0,
         },
     )

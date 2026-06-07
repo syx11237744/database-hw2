@@ -21,8 +21,6 @@ pythonpath_entries.append(os.environ.get("PYTHONPATH", ""))
 os.environ["PYTHONPATH"] = os.pathsep.join(entry for entry in pythonpath_entries if entry)
 
 from egonet_mining.algorithms import (
-    describe_ego_clusters,
-    ego_score_partition,
     louvain_pair_scores,
     louvain_partition,
 )
@@ -75,6 +73,7 @@ def run_dataset(name: str, sc, args: argparse.Namespace) -> list[dict[str, float
         seed=args.seed,
     )
     negatives = sample_negative_edges(graph, len(positives), seed=args.seed + 100)
+    eval_pairs = [tuple(edge) for edge in positives] + [tuple(edge) for edge in negatives]
 
     spark_result = spark_ego_friendship_scores(
         train,
@@ -84,16 +83,13 @@ def run_dataset(name: str, sc, args: argparse.Namespace) -> list[dict[str, float
         beta=args.beta,
         max_iter=args.max_iter,
         min_cluster_size=args.min_cluster_size,
+        features=tuple(args.features),
+        candidate_pairs=eval_pairs,
         seed=args.seed,
         rdd_partitions=args.rdd_partitions,
     )
-    ego_partition = ego_score_partition(train, spark_result.scores, min_score=args.min_score)
-    ego_quality = evaluate_partition(train, ego_partition)
-    ego_lp = evaluate_link_prediction(spark_result.scores, positives, negatives)
-    ego_extra = describe_ego_clusters(train, spark_result.ego_clusters)
 
     louvain_comms, louvain_runtime = timed(louvain_partition, train, seed=args.seed)
-    eval_pairs = [tuple(edge) for edge in positives] + [tuple(edge) for edge in negatives]
     louvain_scores = louvain_pair_scores(train, louvain_comms, eval_pairs)
     louvain_quality = evaluate_partition(train, louvain_comms)
     louvain_lp = evaluate_link_prediction(louvain_scores, positives, negatives)
@@ -114,29 +110,49 @@ def run_dataset(name: str, sc, args: argparse.Namespace) -> list[dict[str, float
         "spark_ego_edges": 0.0,
         "spark_ego_count": 0.0,
     }
-    return [
-        {
-            **base,
-            "algorithm": "Spark-EgoNet-APM",
-            "runtime_sec": spark_result.stats["spark_runtime_sec"],
-            **ego_quality,
-            **ego_lp,
-            **ego_extra,
-            **spark_result.stats,
-        },
+    rows: list[dict[str, float | str]] = []
+    for feature in args.features:
+        ego_lp = evaluate_link_prediction(spark_result.scores[feature], positives, negatives)
+        rows.append(
+            {
+                **base,
+                "algorithm": f"Spark-EgoNet-APM-{feature}",
+                "clusterer": "APM",
+                "feature": feature,
+                "runtime_sec": spark_result.stats["spark_runtime_sec"],
+                "community_count": "",
+                "mean_size": "",
+                "modularity": "",
+                "coverage": "",
+                "mean_density": "",
+                "mean_conductance": "",
+                **ego_lp,
+                "ego_cluster_count": spark_result.stats["ego_cluster_count"],
+                "ego_cluster_mean_size": spark_result.stats["ego_cluster_mean_size"],
+                "ego_cluster_mean_density": spark_result.stats["ego_cluster_mean_density"],
+                "ego_cluster_mean_conductance": spark_result.stats["ego_cluster_mean_conductance"],
+                **spark_result.stats,
+            }
+        )
+
+    rows.append(
         {
             **base,
             "algorithm": "Louvain",
+            "clusterer": "global",
+            "feature": "community_common_neighbors",
             "runtime_sec": louvain_runtime,
             **louvain_quality,
             **louvain_lp,
             "ego_cluster_count": 0.0,
             "ego_cluster_mean_size": 0.0,
             "ego_cluster_mean_density": 0.0,
+            "ego_cluster_mean_conductance": 0.0,
             **zero_stats,
             "spark_runtime_sec": 0.0,
         },
-    ]
+    )
+    return rows
 
 
 def write_results(rows: list[dict[str, float | str]], output: pathlib.Path) -> None:
@@ -144,6 +160,8 @@ def write_results(rows: list[dict[str, float | str]], output: pathlib.Path) -> N
     fieldnames = [
         "dataset",
         "algorithm",
+        "clusterer",
+        "feature",
         "nodes",
         "edges",
         "train_edges",
@@ -161,6 +179,7 @@ def write_results(rows: list[dict[str, float | str]], output: pathlib.Path) -> N
         "ego_cluster_count",
         "ego_cluster_mean_size",
         "ego_cluster_mean_density",
+        "ego_cluster_mean_conductance",
         "spark_input_edges",
         "spark_replicated_edges",
         "spark_replication_factor",
@@ -176,30 +195,39 @@ def write_results(rows: list[dict[str, float | str]], output: pathlib.Path) -> N
 
 
 def print_summary(rows: list[dict[str, float | str]]) -> None:
+    def format_optional(value: float | str, width: int = 8) -> str:
+        if value == "":
+            return f"{'n/a':>{width}}"
+        return f"{float(value):>{width}.4f}"
+
     print("\nSpark experiment summary")
     print("=" * 120)
     print(
-        f"{'dataset':<12} {'algorithm':<18} {'rho':>4} {'time(s)':>9} "
-        f"{'mod':>8} {'cond':>8} {'AUC':>8} {'rep':>6}"
+        f"{'dataset':<12} {'algorithm':<21} {'rho':>4} {'time(s)':>9} "
+        f"{'mod':>8} {'local_den':>10} {'AUC':>8} {'rep':>6}"
     )
     for row in rows:
         print(
-            f"{row['dataset']:<12} {row['algorithm']:<18} "
+            f"{row['dataset']:<12} {row['algorithm']:<21} "
             f"{int(float(row['rho'])):>4} "
             f"{float(row['runtime_sec']):>9.4f} "
-            f"{float(row['modularity']):>8.4f} "
-            f"{float(row['mean_conductance']):>8.4f} "
+            f"{format_optional(row['modularity'])} "
+            f"{float(row['ego_cluster_mean_density']):>10.4f} "
             f"{float(row['auc']):>8.4f} "
             f"{float(row['spark_replication_factor']):>6.2f}"
         )
 
-    spark_times = [float(row["runtime_sec"]) for row in rows if row["algorithm"] == "Spark-EgoNet-APM"]
+    spark_times = {
+        row["dataset"]: float(row["runtime_sec"])
+        for row in rows
+        if str(row["algorithm"]).startswith("Spark-EgoNet-APM-") and row["feature"] == "W1"
+    }
     louvain_times = [float(row["runtime_sec"]) for row in rows if row["algorithm"] == "Louvain"]
     if spark_times and louvain_times:
         print("=" * 120)
-        print(f"mean Spark-EgoNet runtime: {statistics.mean(spark_times):.4f}s")
+        print(f"mean Spark-EgoNet runtime: {statistics.mean(spark_times.values()):.4f}s")
         print(f"mean Louvain runtime:      {statistics.mean(louvain_times):.4f}s")
-        print(f"mean runtime ratio:        {statistics.mean(spark_times) / statistics.mean(louvain_times):.2f}x")
+        print(f"mean runtime ratio:        {statistics.mean(spark_times.values()) / statistics.mean(louvain_times):.2f}x")
 
 
 def parse_args() -> argparse.Namespace:
@@ -216,7 +244,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--beta", type=float, default=0.01)
     parser.add_argument("--max-iter", type=int, default=20)
     parser.add_argument("--min-cluster-size", type=int, default=2)
-    parser.add_argument("--min-score", type=float, default=1.0)
+    parser.add_argument("--features", nargs="+", choices=["W1", "W2", "W3", "W4"], default=["W1", "W2", "W3", "W4"])
     return parser.parse_args()
 
 

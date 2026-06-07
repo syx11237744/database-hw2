@@ -44,14 +44,19 @@ Run:
 
 ```bash
 python scripts/generate_datasets.py
-python run_experiments.py
+python run_experiments.py --seeds 1 2 3 4 5
 python plot_results.py
 ```
 
 Results are stored in:
 
-- `results/experiment_results.csv`
-- `results/quality_runtime.png`
+- `results/experiment_results.csv`: per-seed detail rows.
+- `results/experiment_summary.csv`: mean/std summary by dataset, algorithm, feature, and metric.
+- `results/topk_precision_recall.csv`: per-seed top-k precision/recall curves.
+- `results/topk_precision_recall_summary.csv`: mean/std top-k precision/recall curves.
+- `results/quality_runtime.png`: mean-over-seeds runtime, AUC, and AP plot.
+
+The experiment records train/test split seeds, negative-sampling seeds, the APM random tie-break seed strategy, local ego-cluster density/conductance quantiles, and circle-reconstruction availability. Circle reconstruction precision/recall is marked unavailable because the included SNAP combined graph files do not contain ground-truth circle memberships.
 
 The code uses three datasets that are explicitly listed in the reproduced paper:
 
@@ -59,37 +64,37 @@ The code uses three datasets that are explicitly listed in the reproduced paper:
 - Enron email network: 36,692 nodes and 183,831 edges.
 - Astro Physics collaboration network: 18,771 nodes and 198,050 edges after self-loop removal.
 
-The results are:
+The mean-over-seeds results are:
 
 | Dataset | Algorithm | Runtime (s) | Local Density | Global Modularity | AUC | AP |
 |---|---:|---:|---:|---:|---:|---:|
-| Facebook | EgoNet-APM-W1 | 8.3271 | 0.7251 | n/a | 0.9807 | 0.9799 |
-| Facebook | EgoNet-APM-W2 | 8.3271 | 0.7251 | n/a | 0.9807 | 0.9799 |
-| Facebook | EgoNet-APM-W3 | 8.3271 | 0.7251 | n/a | 0.9799 | 0.9792 |
-| Facebook | EgoNet-APM-W4 | 8.3271 | 0.7251 | n/a | 0.9809 | 0.9803 |
-| Facebook | EgoNet-CC-W1 | 5.5140 | 0.6135 | n/a | 0.9938 | 0.9922 |
-| Facebook | EgoNet-CC-W2 | 5.5140 | 0.6135 | n/a | 0.9935 | 0.9924 |
-| Facebook | EgoNet-CC-W3 | 5.5140 | 0.6135 | n/a | 0.9904 | 0.9892 |
-| Facebook | EgoNet-CC-W4 | 5.5140 | 0.6135 | n/a | 0.9938 | 0.9929 |
-| Facebook | Louvain | 0.3085 | n/a | 0.8346 | 0.9938 | 0.9925 |
-| Enron | EgoNet-APM-W1 | 10.0931 | 0.8310 | n/a | 0.9387 | 0.9386 |
-| Enron | EgoNet-APM-W2 | 10.0931 | 0.8310 | n/a | 0.9388 | 0.9388 |
-| Enron | EgoNet-APM-W3 | 10.0931 | 0.8310 | n/a | 0.9386 | 0.9385 |
-| Enron | EgoNet-APM-W4 | 10.0931 | 0.8310 | n/a | 0.9388 | 0.9388 |
-| Enron | EgoNet-CC-W1 | 3.6553 | 0.8046 | n/a | 0.9743 | 0.9741 |
-| Enron | EgoNet-CC-W2 | 3.6553 | 0.8046 | n/a | 0.9749 | 0.9752 |
-| Enron | EgoNet-CC-W3 | 3.6553 | 0.8046 | n/a | 0.9720 | 0.9715 |
-| Enron | EgoNet-CC-W4 | 3.6553 | 0.8046 | n/a | 0.9747 | 0.9749 |
-| Enron | Louvain | 1.8008 | n/a | 0.6104 | 0.9693 | 0.9596 |
-| AstroPh | EgoNet-APM-W1 | 9.8515 | 0.8991 | n/a | 0.9725 | 0.9725 |
-| AstroPh | EgoNet-APM-W2 | 9.8515 | 0.8991 | n/a | 0.9725 | 0.9725 |
-| AstroPh | EgoNet-APM-W3 | 9.8515 | 0.8991 | n/a | 0.9720 | 0.9720 |
-| AstroPh | EgoNet-APM-W4 | 9.8515 | 0.8991 | n/a | 0.9725 | 0.9725 |
-| AstroPh | EgoNet-CC-W1 | 5.2158 | 0.7930 | n/a | 0.9842 | 0.9842 |
-| AstroPh | EgoNet-CC-W2 | 5.2158 | 0.7930 | n/a | 0.9846 | 0.9849 |
-| AstroPh | EgoNet-CC-W3 | 5.2158 | 0.7930 | n/a | 0.9815 | 0.9814 |
-| AstroPh | EgoNet-CC-W4 | 5.2158 | 0.7930 | n/a | 0.9842 | 0.9844 |
-| AstroPh | Louvain | 1.5595 | n/a | 0.6267 | 0.9828 | 0.9803 |
+| Facebook | EgoNet-APM-W1 | 8.5204 | 0.7267 | n/a | 0.9812 | 0.9802 |
+| Facebook | EgoNet-APM-W2 | 8.5204 | 0.7267 | n/a | 0.9812 | 0.9803 |
+| Facebook | EgoNet-APM-W3 | 8.5204 | 0.7267 | n/a | 0.9806 | 0.9796 |
+| Facebook | EgoNet-APM-W4 | 8.5204 | 0.7267 | n/a | 0.9817 | 0.9812 |
+| Facebook | EgoNet-CC-W1 | 5.5231 | 0.6141 | n/a | 0.9933 | 0.9919 |
+| Facebook | EgoNet-CC-W2 | 5.5231 | 0.6141 | n/a | 0.9932 | 0.9920 |
+| Facebook | EgoNet-CC-W3 | 5.5231 | 0.6141 | n/a | 0.9907 | 0.9895 |
+| Facebook | EgoNet-CC-W4 | 5.5231 | 0.6141 | n/a | 0.9936 | 0.9930 |
+| Facebook | Louvain | 0.3189 | n/a | 0.8346 | 0.9939 | 0.9934 |
+| Enron | EgoNet-APM-W1 | 10.4232 | 0.8313 | n/a | 0.9338 | 0.9336 |
+| Enron | EgoNet-APM-W2 | 10.4232 | 0.8313 | n/a | 0.9339 | 0.9338 |
+| Enron | EgoNet-APM-W3 | 10.4232 | 0.8313 | n/a | 0.9333 | 0.9331 |
+| Enron | EgoNet-APM-W4 | 10.4232 | 0.8313 | n/a | 0.9340 | 0.9338 |
+| Enron | EgoNet-CC-W1 | 3.5843 | 0.8049 | n/a | 0.9798 | 0.9796 |
+| Enron | EgoNet-CC-W2 | 3.5843 | 0.8049 | n/a | 0.9802 | 0.9803 |
+| Enron | EgoNet-CC-W3 | 3.5843 | 0.8049 | n/a | 0.9742 | 0.9740 |
+| Enron | EgoNet-CC-W4 | 3.5843 | 0.8049 | n/a | 0.9800 | 0.9801 |
+| Enron | Louvain | 1.9705 | n/a | 0.6150 | 0.9699 | 0.9584 |
+| AstroPh | EgoNet-APM-W1 | 9.7059 | 0.8989 | n/a | 0.9743 | 0.9742 |
+| AstroPh | EgoNet-APM-W2 | 9.7059 | 0.8989 | n/a | 0.9743 | 0.9743 |
+| AstroPh | EgoNet-APM-W3 | 9.7059 | 0.8989 | n/a | 0.9737 | 0.9737 |
+| AstroPh | EgoNet-APM-W4 | 9.7059 | 0.8989 | n/a | 0.9743 | 0.9743 |
+| AstroPh | EgoNet-CC-W1 | 5.2957 | 0.7933 | n/a | 0.9857 | 0.9856 |
+| AstroPh | EgoNet-CC-W2 | 5.2957 | 0.7933 | n/a | 0.9860 | 0.9862 |
+| AstroPh | EgoNet-CC-W3 | 5.2957 | 0.7933 | n/a | 0.9827 | 0.9826 |
+| AstroPh | EgoNet-CC-W4 | 5.2957 | 0.7933 | n/a | 0.9856 | 0.9858 |
+| AstroPh | Louvain | 1.5774 | n/a | 0.6273 | 0.9816 | 0.9793 |
 
 ## Local PySpark MapReduce Reproduction
 
@@ -101,18 +106,27 @@ Run:
 python run_spark_experiments.py --datasets facebook enron astro_ph --rho 4 --rdd-partitions 4
 ```
 
-Results are stored in `results/spark_experiment_results.csv`.
+Results are stored in `results/spark_experiment_results.csv`. Spark EgoNet is reported as W1-W4 friend-suggestion features and local ego-cluster statistics, not as a global partition.
 
-| Dataset | Algorithm | Runtime (s) | Replication Factor | Modularity | Mean Conductance | AUC | AP |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Facebook | Spark-EgoNet-APM | 30.6445 | 2.25 | 0.0009 | 0.7682 | 0.9807 | 0.9799 |
-| Facebook | Louvain | 0.3007 | 0.00 | 0.8346 | 0.0545 | 0.9938 | 0.9925 |
-| Enron | Spark-EgoNet-APM | 19.2143 | 2.25 | 0.0556 | 0.8571 | 0.9387 | 0.9386 |
-| Enron | Louvain | 1.9121 | 0.00 | 0.6104 | 0.0189 | 0.9693 | 0.9596 |
-| AstroPh | Spark-EgoNet-APM | 29.8530 | 2.25 | 0.0390 | 0.8938 | 0.9725 | 0.9725 |
-| AstroPh | Louvain | 1.6305 | 0.00 | 0.6267 | 0.0244 | 0.9828 | 0.9803 |
+| Dataset | Algorithm | Runtime (s) | Replication Factor | Local Density | AUC | AP |
+|---|---:|---:|---:|---:|---:|---:|
+| Facebook | Spark-EgoNet-APM-W1 | 23.8400 | 2.25 | 0.7251 | 0.9807 | 0.9799 |
+| Facebook | Spark-EgoNet-APM-W2 | 23.8400 | 2.25 | 0.7251 | 0.9807 | 0.9799 |
+| Facebook | Spark-EgoNet-APM-W3 | 23.8400 | 2.25 | 0.7251 | 0.9799 | 0.9792 |
+| Facebook | Spark-EgoNet-APM-W4 | 23.8400 | 2.25 | 0.7251 | 0.9809 | 0.9803 |
+| Facebook | Louvain | 0.2951 | 0.00 | n/a | 0.9938 | 0.9925 |
+| Enron | Spark-EgoNet-APM-W1 | 20.0122 | 2.25 | 0.8310 | 0.9387 | 0.9386 |
+| Enron | Spark-EgoNet-APM-W2 | 20.0122 | 2.25 | 0.8310 | 0.9388 | 0.9388 |
+| Enron | Spark-EgoNet-APM-W3 | 20.0122 | 2.25 | 0.8310 | 0.9386 | 0.9385 |
+| Enron | Spark-EgoNet-APM-W4 | 20.0122 | 2.25 | 0.8310 | 0.9388 | 0.9388 |
+| Enron | Louvain | 1.8068 | 0.00 | n/a | 0.9693 | 0.9596 |
+| AstroPh | Spark-EgoNet-APM-W1 | 29.5018 | 2.25 | 0.8991 | 0.9725 | 0.9725 |
+| AstroPh | Spark-EgoNet-APM-W2 | 29.5018 | 2.25 | 0.8991 | 0.9725 | 0.9725 |
+| AstroPh | Spark-EgoNet-APM-W3 | 29.5018 | 2.25 | 0.8991 | 0.9720 | 0.9720 |
+| AstroPh | Spark-EgoNet-APM-W4 | 29.5018 | 2.25 | 0.8991 | 0.9725 | 0.9725 |
+| AstroPh | Louvain | 1.5207 | 0.00 | n/a | 0.9828 | 0.9803 |
 
-The mean Spark-EgoNet runtime is 26.5706 seconds, while mean Louvain runtime is 1.2811 seconds, a 20.74x runtime gap in local mode. The Spark-EgoNet AUC/AP values match the single-machine triangle-construction EgoNet results, which indicates that the Spark job reproduces the same ego-net scoring semantics. The remaining runtime gap is mainly due to local Spark overhead and edge replication/shuffle, not a change in the underlying community scoring logic.
+The mean Spark-EgoNet runtime is 24.4513 seconds, while mean Louvain runtime is 1.2075 seconds, a 20.25x runtime gap in local mode. The Spark-EgoNet W1-W4 AUC/AP values match the single-machine triangle-construction APM results, which indicates that the Spark job reproduces the same ego-net scoring semantics. The remaining runtime gap is mainly due to local Spark overhead and edge replication/shuffle, not a change in the underlying community scoring logic.
 
 ## Comparison With The Paper
 
@@ -123,13 +137,13 @@ The following table compares the paper's reported numbers with our reproduced re
 | Aspect | Paper result | Our result | Interpretation |
 |---|---:|---:|---|
 | Dataset scale | Facebook: 4,039 nodes / 88,234 edges; Twitter: 81,306 / 1,768,149; LiveJournal: 4,847,571 / 68,993,773; Patents: 3,774,768 / 16,518,948 | Facebook: 4,039 / 88,234; Enron: 36,692 / 183,831; AstroPh: 18,771 / 198,050 | Facebook exactly matches the paper's reported Facebook scale. Enron and AstroPh are also paper-listed datasets, selected to keep experiments feasible. |
-| Ego-net cluster density | Most retrieved ego-net clusters have density larger than 0.2; Google+ circles average density is 0.352 | APM local ego-cluster mean densities are 0.7251, 0.8310, and 0.8991; CC local ego-cluster mean densities are 0.6135, 0.8046, and 0.7930 for Facebook, Enron, and AstroPh | The local ego-net clusters are dense, consistent with the paper's microscopic-community claim. |
-| Ego-net conductance | Paper observes typically low conductance in retrieved ego-net clusters; Google+ circles average conductance is 0.1438 | APM local ego-cluster mean conductances are 0.3296, 0.3180, and 0.2162; CC clusters are full connected components inside each `Z_u`, so their local conductance is 0.0 by construction | The previous high conductance mismatch came from evaluating global score-graph components, not local ego-net clusters. |
+| Ego-net cluster density | Most retrieved ego-net clusters have density larger than 0.2; Google+ circles average density is 0.352 | APM local ego-cluster mean densities are 0.7267, 0.8313, and 0.8989; CC local ego-cluster mean densities are 0.6141, 0.8049, and 0.7933 for Facebook, Enron, and AstroPh | The local ego-net clusters are dense, consistent with the paper's microscopic-community claim. |
+| Ego-net conductance | Paper observes typically low conductance in retrieved ego-net clusters; Google+ circles average conductance is 0.1438 | APM local ego-cluster mean conductances are 0.3307, 0.3186, and 0.2152; CC clusters are full connected components inside each `Z_u`, so their local conductance is 0.0 by construction | The previous high conductance mismatch came from evaluating global score-graph components, not local ego-net clusters. |
 | Circle reconstruction | LP: node precision 0.86, edge precision 0.87, edge recall 0.96; SLPA: node precision 0.85, edge recall 0.98 | No circle labels are used in our experiment | Not directly comparable. We did not use Facebook circle ground truth; we evaluate unsupervised community quality and held-out edge prediction instead. |
-| Friend suggestion | Ego-net friendship scores outperform common friends and Adamic-Adar in ranked precision/recall curves; live Google+ acceptance rate increases by more than 0.5% | Best EgoNet AUC/AP: Facebook CC-W4 0.9938/0.9929, Enron CC-W2 0.9749/0.9752, AstroPh CC-W2 0.9846/0.9849 | Strong qualitative agreement: local ego-net co-clustering is useful for link prediction. |
-| Runtime/scalability | Fast sequential ego-net construction is 5x faster than naive on LiveJournal; distributed version is 11x faster | APM-W1..W4 runtime is 8.3-10.1 seconds; CC-W1..W4 runtime is 3.7-5.5 seconds; Louvain is 0.3-1.8 seconds | The Python version uses triangle-based single-machine ego-net construction, but still does not implement true distributed MapReduce scalability. |
+| Friend suggestion | Ego-net friendship scores outperform common friends and Adamic-Adar in ranked precision/recall curves; live Google+ acceptance rate increases by more than 0.5% | Best EgoNet mean AUC/AP: Facebook CC-W4 0.9936/0.9930, Enron CC-W2 0.9802/0.9803, AstroPh CC-W2 0.9860/0.9862 | Strong qualitative agreement: local ego-net co-clustering is useful for link prediction. |
+| Runtime/scalability | Fast sequential ego-net construction is 5x faster than naive on LiveJournal; distributed version is 11x faster | Mean APM-W1..W4 runtime is 8.5-10.4 seconds; CC-W1..W4 runtime is 3.6-5.5 seconds; Louvain is 0.3-2.0 seconds | The Python version uses triangle-based single-machine ego-net construction, but still does not implement true distributed MapReduce scalability. |
 
-The strongest agreement with the paper is in the link-prediction behavior. The paper argues that ego-net friendship scores are useful local features for friend suggestion. Our W1-W4 results are high on all three paper datasets, and the connected-components baseline inside each ego-net is particularly strong: Facebook CC-W4 reaches 0.9938/0.9929 AUC/AP, Enron CC-W2 reaches 0.9749/0.9752, and AstroPh CC-W2 reaches 0.9846/0.9849. This supports the same qualitative conclusion: co-occurrence inside ego-net communities gives a strong local similarity signal.
+The strongest agreement with the paper is in the link-prediction behavior. The paper argues that ego-net friendship scores are useful local features for friend suggestion. Our W1-W4 results are high on all three paper datasets, and the connected-components baseline inside each ego-net is particularly strong: Facebook CC-W4 reaches 0.9936/0.9930 mean AUC/AP, Enron CC-W2 reaches 0.9802/0.9803, and AstroPh CC-W2 reaches 0.9860/0.9862. This supports the same qualitative conclusion: co-occurrence inside ego-net communities gives a strong local similarity signal.
 
 The main methodological correction is that EgoNet W1-W4 are no longer evaluated as global graph partitions. Louvain obtains meaningful global modularity because it directly optimizes a global partition; EgoNet produces local clusters and pairwise recommendation features. Therefore, global modularity is reported for Louvain only, while EgoNet is evaluated through local ego-cluster statistics and held-out link prediction.
 

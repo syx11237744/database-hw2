@@ -112,6 +112,45 @@ def evaluate_link_prediction(
     }
 
 
+def precision_recall_curve_at_k(
+    scores: Mapping[tuple[str, str], float],
+    positive_edges: Sequence[tuple[str, str]],
+    negative_edges: Sequence[tuple[str, str]],
+    ks: Sequence[int],
+) -> list[dict[str, float]]:
+    positive_set = {tuple(sorted(edge)) for edge in positive_edges}
+    pairs = [
+        (
+            scores.get(tuple(sorted(edge)), 0.0),
+            tuple(sorted(edge)),
+            1 if tuple(sorted(edge)) in positive_set else 0,
+        )
+        for edge in list(positive_edges) + list(negative_edges)
+    ]
+    pairs.sort(key=lambda item: (-item[0], item[1]))
+
+    rows: list[dict[str, float]] = []
+    positives = len(positive_set)
+    hits = 0
+    cursor = 0
+    for requested_k in sorted(set(ks)):
+        if requested_k <= 0:
+            continue
+        actual_k = min(requested_k, len(pairs))
+        while cursor < actual_k:
+            hits += pairs[cursor][2]
+            cursor += 1
+        rows.append(
+            {
+                "k": float(requested_k),
+                "evaluated_k": float(actual_k),
+                "precision": hits / actual_k if actual_k else 0.0,
+                "recall": hits / positives if positives else 0.0,
+            }
+        )
+    return rows
+
+
 def evaluate_partition(graph: nx.Graph, communities: Sequence[set[str]]) -> dict[str, float]:
     return {
         "community_count": float(len(communities)),

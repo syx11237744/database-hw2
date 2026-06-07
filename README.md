@@ -35,13 +35,15 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/generate_datasets.py
-python run_experiments.py
+python run_experiments.py --seeds 1 2 3 4 5
 python plot_results.py
 python run_dynamic_experiments.py
 python plot_dynamic_results.py
 ```
 
-The main results are saved to `results/experiment_results.csv`, and the plot is saved to `results/quality_runtime.png`.
+The main per-seed results are saved to `results/experiment_results.csv`, mean/std summaries are saved to `results/experiment_summary.csv`, top-k precision/recall curves are saved to `results/topk_precision_recall.csv`, top-k mean/std summaries are saved to `results/topk_precision_recall_summary.csv`, and the plot is saved to `results/quality_runtime.png`.
+
+Each per-seed row records the train/test split seed, negative-sampling seed, APM tie-break seed strategy, local ego-cluster density/conductance quantiles, and circle-reconstruction availability. Circle reconstruction is marked unavailable for the included SNAP combined graph files because the repository does not include ground-truth circle membership files.
 
 The optional dynamic-graph results are saved to `results/dynamic_experiment_results.csv`, and the dynamic speedup plot is saved to `results/dynamic_speedup.png`.
 
