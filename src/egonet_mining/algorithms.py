@@ -46,6 +46,14 @@ class LocalCSRGraph:
         return self.indices[self.indptr[idx] : self.indptr[idx + 1]]
 
 
+@dataclass(frozen=True)
+class CandidatePairIndex:
+    """Sparse column index for fixed link-prediction candidate pairs."""
+
+    pairs: list[tuple[str, str]]
+    by_source: dict[str, list[tuple[str, int]]]
+
+
 def _sorted_pair(source: str, target: str) -> tuple[str, str]:
     return (source, target) if source <= target else (target, source)
 
@@ -270,10 +278,13 @@ def csr_apm_label_propagation(
         if changed / graph.node_count < beta:
             break
 
-    communities: dict[int, list[int]] = defaultdict(list)
+    communities: list[list[int]] = [[] for _ in range(graph.node_count)]
+    seen_labels: list[int] = []
     for node, label in enumerate(labels):
+        if not communities[label]:
+            seen_labels.append(label)
         communities[label].append(node)
-    return [nodes for nodes in communities.values()]
+    return [communities[label] for label in seen_labels]
 
 
 def _cluster_density(graph: nx.Graph, cluster: set[str]) -> float:
@@ -342,28 +353,47 @@ def _quantile_stats(prefix: str, values: list[float]) -> dict[str, float]:
 
 def _candidate_index(
     candidate_pairs: list[tuple[str, str]] | None,
-) -> tuple[set[tuple[str, str]] | None, dict[str, set[str]]]:
+) -> CandidatePairIndex | None:
     if candidate_pairs is None:
-        return None, {}
-    normalized = {_sorted_pair(source, target) for source, target in candidate_pairs}
-    by_node: dict[str, set[str]] = defaultdict(set)
-    for source, target in normalized:
-        by_node[source].add(target)
-        by_node[target].add(source)
-    return normalized, by_node
+        return None
+    normalized = sorted({_sorted_pair(source, target) for source, target in candidate_pairs})
+    by_source: dict[str, list[tuple[str, int]]] = defaultdict(list)
+    for idx, (source, target) in enumerate(normalized):
+        by_source[source].append((target, idx))
+    return CandidatePairIndex(
+        pairs=normalized,
+        by_source={source: targets for source, targets in by_source.items()},
+    )
 
 
-def _cluster_candidate_pairs(
+def _cluster_candidate_pair_indices(
     nodes: list[str],
     cluster_set: set[str],
-    candidate_by_node: dict[str, set[str]],
-) -> list[tuple[str, str]]:
-    pairs: list[tuple[str, str]] = []
+    candidate_index: CandidatePairIndex,
+    node_to_idx: dict[str, int],
+) -> list[tuple[int, int, int]]:
+    pairs: list[tuple[int, int, int]] = []
     for source in nodes:
-        for target in candidate_by_node.get(source, set()).intersection(cluster_set):
-            if source < target:
-                pairs.append((source, target))
+        source_idx = node_to_idx[source]
+        for target, pair_idx in candidate_index.by_source.get(source, ()):
+            if target in cluster_set:
+                pairs.append((pair_idx, source_idx, node_to_idx[target]))
     return pairs
+
+
+def _scores_from_candidate_arrays(
+    features: tuple[str, ...],
+    score_arrays: dict[str, list[float]],
+    candidate_index: CandidatePairIndex,
+) -> EgoFeatureScores:
+    return {
+        feature: {
+            candidate_index.pairs[idx]: score
+            for idx, score in enumerate(score_arrays[feature])
+            if score != 0.0
+        }
+        for feature in features
+    }
 
 
 def ego_feature_scores(
@@ -392,7 +422,7 @@ def ego_feature_scores(
     sorted_nodes = sorted(graph.nodes())
     node_offsets = {node: offset for offset, node in enumerate(sorted_nodes)}
     graph_edges = {_sorted_pair(source, target) for source, target in graph.edges()}
-    candidate_set, candidate_by_node = _candidate_index(candidate_pairs)
+    candidate_index = _candidate_index(candidate_pairs)
 
     if construction == "triangle":
         ego_edges_by_node = triangle_ego_net_edges(graph)
@@ -404,7 +434,22 @@ def ego_feature_scores(
     else:
         raise ValueError(f"Unsupported ego-net construction mode: {construction}")
 
-    score_tables: EgoFeatureScores = {feature: defaultdict(float) for feature in features}
+    score_tables: dict[str, defaultdict[tuple[str, str], float]] | None = (
+        None if candidate_index is not None else {feature: defaultdict(float) for feature in features}
+    )
+    score_arrays: dict[str, list[float]] | None = (
+        {feature: [0.0] * len(candidate_index.pairs) for feature in features}
+        if candidate_index is not None
+        else None
+    )
+    w1_table = score_tables.get("W1") if score_tables is not None else None
+    w2_table = score_tables.get("W2") if score_tables is not None else None
+    w3_table = score_tables.get("W3") if score_tables is not None else None
+    w4_table = score_tables.get("W4") if score_tables is not None else None
+    w1_array = score_arrays.get("W1") if score_arrays is not None else None
+    w2_array = score_arrays.get("W2") if score_arrays is not None else None
+    w3_array = score_arrays.get("W3") if score_arrays is not None else None
+    w4_array = score_arrays.get("W4") if score_arrays is not None else None
     all_ego_clusters: list[set[str]] = []
     densities: list[float] = []
     conductances: list[float] = []
@@ -437,34 +482,51 @@ def ego_feature_scores(
             densities.append(density)
             conductances.append(conductance)
 
-            if candidate_set is None:
+            if candidate_index is None:
                 pairs = [
                     (ego_graph.node_to_idx[source], ego_graph.node_to_idx[target], source, target)
                     for source, target in itertools.combinations(nodes, 2)
                     if (source, target) not in graph_edges
                 ]
+                if not pairs:
+                    continue
+                for source_idx, target_idx, source, target in pairs:
+                    if w1_table is not None:
+                        w1_table[(source, target)] += 1.0
+                    if w2_table is not None:
+                        w2_table[(source, target)] += density
+                    if w3_table is not None:
+                        w3_table[(source, target)] += len(
+                            neighbors_in_cluster[source_idx].intersection(neighbors_in_cluster[target_idx])
+                        )
+                    if w4_table is not None:
+                        w4_table[(source, target)] += (
+                            min(len(neighbors_in_cluster[source_idx]), len(neighbors_in_cluster[target_idx]))
+                            / len(cluster_set)
+                        )
             else:
-                pairs = [
-                    (ego_graph.node_to_idx[source], ego_graph.node_to_idx[target], source, target)
-                    for source, target in _cluster_candidate_pairs(nodes, cluster_set, candidate_by_node)
-                ]
-            if not pairs:
-                continue
-
-            for source_idx, target_idx, source, target in pairs:
-                if "W1" in score_tables:
-                    score_tables["W1"][(source, target)] += 1.0
-                if "W2" in score_tables:
-                    score_tables["W2"][(source, target)] += density
-                if "W3" in score_tables:
-                    score_tables["W3"][(source, target)] += len(
-                        neighbors_in_cluster[source_idx].intersection(neighbors_in_cluster[target_idx])
-                    )
-                if "W4" in score_tables:
-                    score_tables["W4"][(source, target)] += (
-                        min(len(neighbors_in_cluster[source_idx]), len(neighbors_in_cluster[target_idx]))
-                        / len(cluster_set)
-                    )
+                indexed_pairs = _cluster_candidate_pair_indices(
+                    nodes,
+                    cluster_set,
+                    candidate_index,
+                    ego_graph.node_to_idx,
+                )
+                if not indexed_pairs:
+                    continue
+                for pair_idx, source_idx, target_idx in indexed_pairs:
+                    if w1_array is not None:
+                        w1_array[pair_idx] += 1.0
+                    if w2_array is not None:
+                        w2_array[pair_idx] += density
+                    if w3_array is not None:
+                        w3_array[pair_idx] += len(
+                            neighbors_in_cluster[source_idx].intersection(neighbors_in_cluster[target_idx])
+                        )
+                    if w4_array is not None:
+                        w4_array[pair_idx] += (
+                            min(len(neighbors_in_cluster[source_idx]), len(neighbors_in_cluster[target_idx]))
+                            / len(cluster_set)
+                        )
 
     cluster_sizes = [len(cluster) for cluster in all_ego_clusters]
     stats = {
@@ -475,8 +537,14 @@ def ego_feature_scores(
     }
     stats.update(_quantile_stats("ego_cluster_density", densities))
     stats.update(_quantile_stats("ego_cluster_conductance", conductances))
+    if candidate_index is not None:
+        assert score_arrays is not None
+        scores = _scores_from_candidate_arrays(features, score_arrays, candidate_index)
+    else:
+        assert score_tables is not None
+        scores = {feature: dict(feature_scores) for feature, feature_scores in score_tables.items()}
     return EgoFeatureResult(
-        scores={feature: dict(scores) for feature, scores in score_tables.items()},
+        scores=scores,
         clusters=all_ego_clusters,
         stats=stats,
     )

@@ -9,7 +9,15 @@ import networkx as nx
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from egonet_mining.algorithms import ego_feature_scores, ego_friendship_scores, triangle_ego_net_edges
+from egonet_mining.algorithms import (
+    apm_label_propagation,
+    csr_apm_label_propagation,
+    csr_graph_from_edges,
+    ego_feature_scores,
+    ego_friendship_scores,
+    ego_graph_from_edges,
+    triangle_ego_net_edges,
+)
 from egonet_mining.dynamic import DynamicEgoNetMiner
 
 
@@ -123,7 +131,12 @@ class TriangleConstructionTest(unittest.TestCase):
         result = ego_feature_scores(
             graph,
             clusterer="cc",
-            candidate_pairs=[("a", "b")],
+            candidate_pairs=[("b", "a")],
+            construction="triangle",
+        )
+        full_result = ego_feature_scores(
+            graph,
+            clusterer="cc",
             construction="triangle",
         )
 
@@ -132,6 +145,31 @@ class TriangleConstructionTest(unittest.TestCase):
         self.assertAlmostEqual(result.scores["W2"][pair], 0.5 + 2 / 3)
         self.assertEqual(result.scores["W3"][pair], 2.0)
         self.assertAlmostEqual(result.scores["W4"][pair], 1 / 4 + 1 / 3)
+        for feature in ("W1", "W2", "W3", "W4"):
+            self.assertAlmostEqual(result.scores[feature][pair], full_result.scores[feature][pair])
+
+    def test_csr_apm_matches_networkx_apm_on_same_ego_graph(self) -> None:
+        edges = {
+            ("a", "b"),
+            ("a", "c"),
+            ("b", "c"),
+            ("c", "d"),
+            ("d", "e"),
+            ("e", "f"),
+            ("d", "f"),
+        }
+
+        nx_clusters = apm_label_propagation(ego_graph_from_edges(edges), seed=13)
+        csr_graph = csr_graph_from_edges(edges)
+        csr_clusters = [
+            {csr_graph.nodes[idx] for idx in cluster}
+            for cluster in csr_apm_label_propagation(csr_graph, seed=13)
+        ]
+
+        self.assertEqual(
+            sorted(sorted(cluster) for cluster in nx_clusters),
+            sorted(sorted(cluster) for cluster in csr_clusters),
+        )
 
 
 if __name__ == "__main__":
