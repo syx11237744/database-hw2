@@ -26,3 +26,11 @@
 
 8. **增加验证和可复现实验元数据**
    仓库没有测试文件。建议加 toy graph 单测：`Z_u` 构造、APM 收敛、W 分数、动态更新等价于静态重算、seed 确定性。CSV 也应记录 alpha/beta/max_iter/min_score/seed/dataset hash，避免结果覆盖后不可追踪。
+
+- 用数组/CSR 邻接表代替 NetworkX 小图；
+- 不为每个 ego 创建 nx.Graph()；
+- APM 聚类用整数 node id 和数组计数；
+- 多进程并行每个 ego 的聚类；
+- 对高 degree ego 做采样、截断或阈值过滤；
+- pair score 聚合用稀疏矩阵或排序归并；
+- 只计算 link-prediction candidate pairs，而不是所有 cluster 内非边。

@@ -67,6 +67,29 @@ The results are:
 | AstroPh | EgoNet-APM | 7.6114 | 0.0390 | 0.8892 | 0.1529 | 0.8938 | 0.9725 | 0.9725 |
 | AstroPh | Louvain | 1.5783 | 0.6267 | 0.6979 | 0.8603 | 0.0244 | 0.9828 | 0.9803 |
 
+## Local PySpark MapReduce Reproduction
+
+To approximate the paper's MapReduce Algorithm 3, the optional Spark experiment hashes nodes into `rho` partitions, maps each edge to partition-triple keys, shuffles edges by triple, runs triangle-based ego-net construction inside each reducer group, deduplicates `(ego, ego-edge)` outputs, and then groups by ego to run the same APM clustering. This validates the distributed dataflow locally, but Spark local mode includes JVM startup, serialization, and shuffle overhead, so it should not be interpreted as a speedup experiment.
+
+Run:
+
+```bash
+python run_spark_experiments.py --datasets facebook enron astro_ph --rho 4 --rdd-partitions 4
+```
+
+Results are stored in `results/spark_experiment_results.csv`.
+
+| Dataset | Algorithm | Runtime (s) | Replication Factor | Modularity | Mean Conductance | AUC | AP |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Facebook | Spark-EgoNet-APM | 30.6445 | 2.25 | 0.0009 | 0.7682 | 0.9807 | 0.9799 |
+| Facebook | Louvain | 0.3007 | 0.00 | 0.8346 | 0.0545 | 0.9938 | 0.9925 |
+| Enron | Spark-EgoNet-APM | 19.2143 | 2.25 | 0.0556 | 0.8571 | 0.9387 | 0.9386 |
+| Enron | Louvain | 1.9121 | 0.00 | 0.6104 | 0.0189 | 0.9693 | 0.9596 |
+| AstroPh | Spark-EgoNet-APM | 29.8530 | 2.25 | 0.0390 | 0.8938 | 0.9725 | 0.9725 |
+| AstroPh | Louvain | 1.6305 | 0.00 | 0.6267 | 0.0244 | 0.9828 | 0.9803 |
+
+The mean Spark-EgoNet runtime is 26.5706 seconds, while mean Louvain runtime is 1.2811 seconds, a 20.74x runtime gap in local mode. The Spark-EgoNet AUC/AP values match the single-machine triangle-construction EgoNet results, which indicates that the Spark job reproduces the same ego-net scoring semantics. The remaining runtime gap is mainly due to local Spark overhead and edge replication/shuffle, not a change in the underlying community scoring logic.
+
 ## Comparison With The Paper
 
 The original paper evaluates ego-net mining on Amazon, Astro Physics, Enron, Slashdot, Patents, Facebook, LiveJournal, Twitter, and a proprietary Google+ graph. It reports detailed figures mainly for Patents, Facebook, LiveJournal, Twitter, and Google+. In this reproduction, we use three of the paper's public datasets: Facebook, Enron, and Astro Physics. This satisfies the project requirement of running 3-4 datasets from the chosen paper while avoiding the very large Patents, LiveJournal, Twitter, and Google+ graphs.

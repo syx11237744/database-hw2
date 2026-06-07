@@ -11,6 +11,8 @@ Epasto, Lattanzi, Mirrokni, Sebe, Taei, and Verma, "Ego-net Community Mining App
 - Ego-net construction without ego node `Z_u`.
 - Triangle-enumeration ego-net construction inspired by the paper's fast
   ego-network construction algorithm.
+- Optional local PySpark MapReduce-style ego-net construction that mirrors the
+  paper's partition-triple shuffle at a small local scale.
 - Absolute-Potts-style label propagation used inside each ego-net.
 - Ego-network friendship score `W(v,w)`, counting how many ego-net communities contain both nodes.
 - Aggregated EgoNet-APM communities from the score graph.
@@ -44,9 +46,18 @@ The main results are saved to `results/experiment_results.csv`, and the plot is 
 
 The optional dynamic-graph results are saved to `results/dynamic_experiment_results.csv`, and the dynamic speedup plot is saved to `results/dynamic_speedup.png`.
 
+Optional local Spark reproduction:
+
+```bash
+pip install -r requirements-spark.txt
+python run_spark_experiments.py --datasets facebook enron astro_ph --rho 4 --rdd-partitions 4
+```
+
+The Spark results are saved to `results/spark_experiment_results.csv`. The script uses Spark local mode, so it validates the MapReduce dataflow but is not expected to be faster than the single-machine constructor on these small datasets.
+
 ## Reproduction Notes
 
-The original paper focuses on large-scale MapReduce construction of all ego-nets. This implementation now uses a single-machine triangle-enumeration constructor for all `Z_u` edge sets, but it still does not implement the paper's distributed MapReduce execution. For debugging, `run_experiments.py --construction neighbor` switches to per-node neighborhood intersection construction.
+The original paper focuses on large-scale MapReduce construction of all ego-nets. This implementation now uses a single-machine triangle-enumeration constructor for all `Z_u` edge sets. It also includes a local PySpark version of the paper's partition-triple shuffle, but the Spark local result is a functional reproduction of the dataflow rather than a proof of cluster-scale speedup. For debugging, `run_experiments.py --construction neighbor` switches to per-node neighborhood intersection construction.
 
 The APM label-propagation update follows the paper appendix:
 
